@@ -43,7 +43,13 @@ No interstitials, no banners. Do not add non-rewarded ad placements without an e
 **Mobile (compile):** `cd mobile && npx tsc --noEmit`
 **Mobile (run):** `cd mobile && npx expo start` — press `i` for iOS Simulator, `a` for Android Emulator
 **Supabase (local):** `supabase start` — starts local Postgres + Edge Functions + Realtime
-**Diff:** `git diff HEAD > /tmp/trivolta_diff.txt`
+**Diff:** `git diff HEAD > ~/trivolta_diff.txt`
+
+---
+
+## Local Dev Prerequisites
+
+`supabase/seed.sql` must exist (even if empty) or `supabase db reset` will fail silently and leave migrations unapplied. The file exists at `supabase/seed.sql` — do not delete it.
 
 ---
 
