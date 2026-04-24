@@ -31,11 +31,11 @@ appId: com.mikeisbell.trivolta
       id: "home-screen"
     timeout: 15000
 
-# Navigate to profile screen
+# Navigate to Profile via avatar button
 - tapOn:
-    id: "home-profile-button"
+    id: "home-avatar"
 
-# Tap sign out button on profile screen
+# Tap sign out button
 - tapOn:
     id: "profile-signout-button"
 

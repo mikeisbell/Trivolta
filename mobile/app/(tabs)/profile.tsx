@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
-import { useAuth } from '../lib/auth'
+import { useAuth } from '../../lib/auth'
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth()
