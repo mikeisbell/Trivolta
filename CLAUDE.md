@@ -1,4 +1,4 @@
-# Quizly — Claude Code Context
+# Trivolta — Claude Code Context
 
 ## What This App Is
 
@@ -31,7 +31,7 @@ No interstitials, no banners. Do not add non-rewarded ad placements without an e
 **Backend:** `cd backend && pytest tests/ -v`
 **Mobile (compile):** `cd mobile && npx tsc --noEmit`
 **Mobile (run):** `cd mobile && npx expo start` — press `i` for iOS Simulator, `a` for Android Emulator
-**Diff:** `git diff HEAD > /tmp/quizly_diff.txt`
+**Diff:** `git diff HEAD > /tmp/trivolta_diff.txt`
 
 ---
 
