@@ -1,0 +1,42 @@
+export type QuestionResponse = {
+  question: string
+  answers: string[]
+  correct_index: number
+  explanation: string
+  difficulty: 'easy' | 'medium' | 'hard'
+  category: string
+}
+
+export type Lobby = {
+  id: string
+  code: string
+  host_id: string
+  category: string
+  status: 'waiting' | 'active' | 'finished'
+  max_players: number
+  created_at: string
+}
+
+export type LobbyPlayer = {
+  lobby_id: string
+  user_id: string
+  joined_at: string
+}
+
+export type LobbyQuestion = {
+  id: string
+  lobby_id: string
+  question_index: number
+  question: string
+  answers: string[]
+  correct_index: number
+  explanation: string
+  difficulty: string
+}
+
+export type GameSession = {
+  id: string
+  lobby_id: string
+  question_index: number
+  starts_at: string
+}

@@ -1,0 +1,19 @@
+# Environment
+.env
+.env.local
+*.env.local
+
+# Node / Expo
+node_modules/
+.expo/
+dist/
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# OS
+.DS_Store
+
+# Diff output
+/tmp/trivolta_diff.txt
