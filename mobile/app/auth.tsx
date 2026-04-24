@@ -57,6 +57,7 @@ export default function AuthScreen() {
             onChangeText={setUsername}
             autoCapitalize="none"
             autoCorrect={false}
+            testID="auth-username-input"
           />
         )}
 
@@ -69,6 +70,7 @@ export default function AuthScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
+          testID="auth-email-input"
         />
 
         <TextInput
@@ -78,12 +80,14 @@ export default function AuthScreen() {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          testID="auth-password-input"
         />
 
         <TouchableOpacity
           style={styles.button}
           onPress={handleSubmit}
           disabled={loading}
+          testID="auth-submit-button"
         >
           {loading
             ? <ActivityIndicator color="#fff" />
@@ -96,6 +100,7 @@ export default function AuthScreen() {
         <TouchableOpacity
           style={styles.switchMode}
           onPress={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+          testID="auth-mode-toggle"
         >
           <Text style={styles.switchText}>
             {mode === 'signin'

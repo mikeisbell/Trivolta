@@ -25,7 +25,7 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       <Text style={styles.label}>ProfileScreen</Text>
       <Text style={styles.email}>{user?.email}</Text>
-      <TouchableOpacity style={styles.signOut} onPress={handleSignOut}>
+      <TouchableOpacity style={styles.signOut} onPress={handleSignOut} testID="profile-signout-button">
         <Text style={styles.signOutText}>Sign out</Text>
       </TouchableOpacity>
     </View>
