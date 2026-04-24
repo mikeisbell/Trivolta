@@ -16,4 +16,4 @@ supabase/.temp/
 .DS_Store
 
 # Diff output
-/tmp/trivolta_diff.txt
+trivolta_diff.txt
