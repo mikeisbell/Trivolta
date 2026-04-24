@@ -8,7 +8,7 @@ export default function ProfileScreen() {
     Alert.alert('Sign out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Sign out',
+        text: 'Confirm',
         style: 'destructive',
         onPress: async () => {
           try {

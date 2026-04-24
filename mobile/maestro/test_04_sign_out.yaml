@@ -1,0 +1,49 @@
+appId: com.mikeisbell.trivolta
+---
+# test_04: Sign out from ProfileScreen returns to auth screen
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign in first
+- assertVisible:
+    id: "auth-email-input"
+
+- tapOn:
+    id: "auth-email-input"
+- inputText: "signup_test@trivolta-test.com"
+
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+
+- tapOn:
+    id: "auth-submit-button"
+
+# Dismiss iOS "Save Password?" system dialog if it appears
+- tapOn:
+    text: "Not Now"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+# Navigate to profile screen
+- tapOn:
+    id: "home-profile-button"
+
+# Tap sign out button on profile screen
+- tapOn:
+    id: "profile-signout-button"
+
+# Confirm the alert
+- tapOn: "Confirm"
+
+# Should be back at auth screen
+- extendedWaitUntil:
+    visible:
+      id: "auth-submit-button"
+    timeout: 15000

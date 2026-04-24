@@ -1,0 +1,14 @@
+appId: com.mikeisbell.trivolta
+---
+# test_01: Unauthenticated user sees auth screen on launch
+# Clears app state to ensure no session is persisted
+
+- clearState
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "auth-email-input"
+- assertVisible:
+    id: "auth-password-input"
+- assertVisible:
+    id: "auth-submit-button"

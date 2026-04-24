@@ -1,0 +1,42 @@
+appId: com.mikeisbell.trivolta
+---
+# test_02: Sign up with fresh credentials navigates to HomeScreen
+# Uses a timestamp-based email to avoid conflicts across runs
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Switch to sign up mode
+- tapOn:
+    id: "auth-mode-toggle"
+
+# Fill in username
+- tapOn:
+    id: "auth-username-input"
+- inputText: "testuser"
+
+# Fill in email (use a fixed test email — db is reset between CI runs)
+- tapOn:
+    id: "auth-email-input"
+- inputText: "signup_test@trivolta-test.com"
+
+# Fill in password
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+
+# Submit
+- tapOn:
+    id: "auth-submit-button"
+
+# Dismiss iOS "Save Password?" system dialog if it appears
+- tapOn:
+    text: "Not Now"
+    optional: true
+
+# Should land on HomeScreen
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000

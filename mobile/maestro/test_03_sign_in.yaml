@@ -1,0 +1,33 @@
+appId: com.mikeisbell.trivolta
+---
+# test_03: Sign in with existing credentials navigates to HomeScreen
+# Depends on test_02 having created signup_test@trivolta-test.com
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Auth screen should be visible (sign in mode is default)
+- assertVisible:
+    id: "auth-email-input"
+
+- tapOn:
+    id: "auth-email-input"
+- inputText: "signup_test@trivolta-test.com"
+
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+
+- tapOn:
+    id: "auth-submit-button"
+
+# Dismiss iOS "Save Password?" system dialog if it appears
+- tapOn:
+    text: "Not Now"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
