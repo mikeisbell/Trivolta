@@ -40,3 +40,13 @@ export type GameSession = {
   question_index: number
   starts_at: string
 }
+
+export type AnswerState = 'unanswered' | 'correct' | 'wrong' | 'timeout'
+
+export type GameResult = {
+  category: string
+  score: number
+  correctCount: number
+  totalQuestions: number
+  bestStreak: number
+}

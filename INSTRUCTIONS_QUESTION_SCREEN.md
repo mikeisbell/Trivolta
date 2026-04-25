@@ -1,3 +1,91 @@
+# INSTRUCTIONS_QUESTION_SCREEN.md — Trivolta solo game loop
+
+## Task
+Build the QuestionScreen — the core solo game loop. Fetches AI-generated questions from
+the solo-question Edge Function, displays them with a countdown timer, handles answer
+selection, shows feedback with explanation, tracks score and streak across 10 questions,
+then navigates to ResultScreen. Also build ResultScreen as a complete screen (not a placeholder).
+
+## Verifiable objective
+When complete:
+- `npx tsc --noEmit` exits with 0 errors
+- Tapping a category card on HomeScreen navigates to QuestionScreen with that category
+- QuestionScreen fetches a question from the Edge Function and displays it
+- Timer counts down from 20 seconds visually
+- Tapping an answer reveals correct/wrong state and shows explanation
+- After 10 questions, ResultScreen shows score, correct count, best streak
+- Tapping "Play again" restarts with the same category
+- Tapping "Home" returns to HomeScreen
+- All 4 Maestro auth tests still pass
+- `git diff HEAD > ~/trivolta_diff.txt` captures all changes
+
+## Constraints
+- Read CLAUDE.md before writing a single file
+- Answers arrive pre-shuffled — do NOT re-shuffle correct_index
+- Timer is client-side for solo mode (server timestamp is lobby-only per CLAUDE.md)
+- Score formula: base 100 pts × time remaining multiplier × streak multiplier
+  - Time multiplier: timeLeft / 20 (so answering instantly = 1.0, last second = ~0.05)
+  - Streak multiplier: 1 + (streak * 0.1) — so 5 streak = 1.5x
+  - Round to nearest integer
+- Unanswered questions (timer expires) score 0 and break the streak
+- Do not add lobby or multiplayer logic to this screen
+- Use colors and spacing exclusively from lib/theme.ts
+- Keep all existing testIDs intact — do not remove them
+- supabase functions serve must be running before testing the question fetch
+
+---
+
+## Step 1 — Add score saving to api.ts
+
+Add a new function to `mobile/lib/api.ts`:
+
+```typescript
+export async function saveScore(
+  category: string,
+  score: number,
+  correctCount: number,
+  totalQuestions: number,
+  bestStreak: number
+): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return
+
+  await supabase.from('scores').insert({
+    user_id: session.user.id,
+    category,
+    score,
+    correct_count: correctCount,
+    total_questions: totalQuestions,
+    best_streak: bestStreak,
+  })
+}
+```
+
+---
+
+## Step 2 — Add game state types to types.ts
+
+Add to `mobile/lib/types.ts`:
+
+```typescript
+export type AnswerState = 'unanswered' | 'correct' | 'wrong' | 'timeout'
+
+export type GameResult = {
+  category: string
+  score: number
+  correctCount: number
+  totalQuestions: number
+  bestStreak: number
+}
+```
+
+---
+
+## Step 3 — Build the QuestionScreen
+
+Replace the contents of `mobile/app/question.tsx`:
+
+```typescript
 import { useEffect, useRef, useState, useCallback } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -404,3 +492,253 @@ const styles = StyleSheet.create({
   },
   nextText: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
 })
+```
+
+---
+
+## Step 4 — Build the ResultScreen
+
+Replace the contents of `mobile/app/results.tsx`:
+
+```typescript
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { colors, radius, spacing } from '../lib/theme'
+
+function gradeLabel(pct: number): string {
+  if (pct >= 90) return 'Outstanding! 🏆'
+  if (pct >= 70) return 'Excellent! 🎯'
+  if (pct >= 50) return 'Good effort 👍'
+  return 'Keep practicing 💪'
+}
+
+export default function ResultScreen() {
+  const router = useRouter()
+  const { category, score, correctCount, totalQuestions, bestStreak } =
+    useLocalSearchParams<{
+      category: string
+      score: string
+      correctCount: string
+      totalQuestions: string
+      bestStreak: string
+    }>()
+
+  const correct = parseInt(correctCount ?? '0')
+  const total = parseInt(totalQuestions ?? '10')
+  const pct = total > 0 ? Math.round((correct / total) * 100) : 0
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View testID="results-screen" style={styles.root}>
+
+        {/* Trophy + grade */}
+        <View style={styles.hero}>
+          <Text style={styles.trophy}>
+            {pct >= 70 ? '🏆' : pct >= 50 ? '🎯' : '💪'}
+          </Text>
+          <Text style={styles.grade}>{gradeLabel(pct)}</Text>
+          <Text style={styles.detail}>
+            {category} · {correct}/{total} correct · {pct}% accuracy
+          </Text>
+        </View>
+
+        {/* Stats */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNum}>{parseInt(score ?? '0').toLocaleString()}</Text>
+            <Text style={styles.statLabel}>Score</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNum}>{bestStreak}x</Text>
+            <Text style={styles.statLabel}>Best streak</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNum}>{pct}%</Text>
+            <Text style={styles.statLabel}>Accuracy</Text>
+          </View>
+        </View>
+
+        {/* XP bar */}
+        <View style={styles.xpWrap}>
+          <View style={styles.xpLabels}>
+            <Text style={styles.xpLabel}>Level 1</Text>
+            <Text style={styles.xpLabel}>+{Math.round(parseInt(score ?? '0') / 10)} XP earned</Text>
+          </View>
+          <View style={styles.xpTrack}>
+            <View style={[styles.xpFill, { width: `${Math.min(pct, 100)}%` }]} />
+          </View>
+        </View>
+
+        {/* Actions */}
+        <View style={styles.actions}>
+          <TouchableOpacity
+            testID="results-play-again"
+            style={styles.primaryBtn}
+            onPress={() => router.replace({
+              pathname: '/question',
+              params: { category },
+            })}
+          >
+            <Text style={styles.primaryText}>Play again</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            testID="results-home"
+            style={styles.ghostBtn}
+            onPress={() => router.replace('/')}
+          >
+            <Text style={styles.ghostText}>Back to home</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </SafeAreaView>
+  )
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  root: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.xxl },
+
+  hero: { alignItems: 'center', paddingTop: 48, paddingBottom: spacing.xl },
+  trophy: { fontSize: 56, marginBottom: spacing.md },
+  grade: { fontSize: 24, fontWeight: '800', color: colors.textPrimary, marginBottom: spacing.xs },
+  detail: { fontSize: 12, color: colors.textMuted, textAlign: 'center', textTransform: 'capitalize' },
+
+  statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    alignItems: 'center',
+  },
+  statNum: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
+  statLabel: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
+
+  xpWrap: { marginBottom: spacing.xl },
+  xpLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs },
+  xpLabel: { fontSize: 10, color: colors.textMuted },
+  xpTrack: { height: 6, backgroundColor: colors.surface, borderRadius: 3, overflow: 'hidden' },
+  xpFill: { height: 6, backgroundColor: colors.purple, borderRadius: 3 },
+
+  actions: { gap: spacing.sm },
+  primaryBtn: {
+    backgroundColor: colors.purple,
+    borderRadius: radius.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  primaryText: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+  ghostBtn: {
+    backgroundColor: colors.surface,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  ghostText: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
+})
+```
+
+---
+
+## Step 5 — Wire category cards on HomeScreen to QuestionScreen
+
+Update `mobile/app/(tabs)/index.tsx`:
+
+In the `CATEGORIES` array and the custom category card, add navigation on press.
+Import `useRouter` from `expo-router` at the top.
+
+Replace each category card's `onPress` handler:
+
+```typescript
+// Add at top of component:
+const router = useRouter()
+
+// Update each category TouchableOpacity onPress:
+onPress={() => router.push({ pathname: '/question', params: { category: cat.label } })}
+
+// Custom category card onPress:
+onPress={() => router.push({ pathname: '/custom-category' })}
+```
+
+Also update the Quick play button:
+```typescript
+onPress={() => {
+  const random = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]
+  router.push({ pathname: '/question', params: { category: random.label } })
+}}
+```
+
+---
+
+## Step 6 — Set ANTHROPIC_API_KEY as local Supabase secret
+
+The solo-question Edge Function requires ANTHROPIC_API_KEY to be set.
+For local development, set it via the Supabase CLI:
+
+```bash
+cd /Users/mizzy/Developer/Trivolta
+echo "ANTHROPIC_API_KEY=your_actual_key_here" > supabase/.env.local
+```
+
+Then restart the Edge Function server with the secret:
+```bash
+supabase functions serve --no-verify-jwt --env-file supabase/.env.local
+```
+
+Add `supabase/.env.local` to the root `.gitignore` if not already present.
+
+---
+
+## Verification
+
+```bash
+# 1. TypeScript check
+cd /Users/mizzy/Developer/Trivolta/mobile
+npx tsc --noEmit
+
+# 2. Start Supabase with API key
+cd /Users/mizzy/Developer/Trivolta
+supabase functions serve --no-verify-jwt --env-file supabase/.env.local
+
+# 3. Start Expo in a new terminal tab
+cd mobile
+npx expo start --ios
+
+# 4. Manually verify in simulator:
+#    - Tap Science category on HomeScreen
+#    - QuestionScreen loads with a question
+#    - Timer counts down
+#    - Tap an answer — see correct/wrong feedback + explanation
+#    - Tap Next through 10 questions
+#    - ResultScreen shows score, streak, accuracy
+#    - Tap Play again — new game starts
+#    - Tap Back to home — returns to HomeScreen
+
+# 5. Maestro tests — all 4 must still pass
+export PATH="$HOME/.maestro/bin:$PATH"
+maestro test maestro/test_01_auth_screen_on_launch.yaml
+maestro test maestro/test_02_sign_up.yaml
+maestro test maestro/test_03_sign_in.yaml
+maestro test maestro/test_04_sign_out.yaml
+
+# 6. Diff
+cd /Users/mizzy/Developer/Trivolta
+git diff HEAD > ~/trivolta_diff.txt
+echo "Lines changed: $(wc -l < ~/trivolta_diff.txt)"
+```
+
+Report:
+- TypeScript: PASS/FAIL
+- Question loads in simulator: YES/NO
+- Timer visible and counting: YES/NO
+- Answer feedback works: YES/NO
+- Results screen shows after 10 questions: YES/NO
+- test_01 through test_04: PASS/FAIL each
+
+Do not report success until TypeScript passes, the game loop works end to end,
+and all 4 Maestro tests pass.

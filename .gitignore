@@ -11,6 +11,7 @@ dist/
 # Supabase local
 supabase/.branches/
 supabase/.temp/
+supabase/.env.local
 
 # OS
 .DS_Store

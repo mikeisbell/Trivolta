@@ -39,3 +39,23 @@ export async function generateLobbyQuestions(
   if (!res.ok) throw new Error(`Generate lobby questions failed: ${res.status}`)
   return res.json()
 }
+
+export async function saveScore(
+  category: string,
+  score: number,
+  correctCount: number,
+  totalQuestions: number,
+  bestStreak: number
+): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return
+
+  await supabase.from('scores').insert({
+    user_id: session.user.id,
+    category,
+    score,
+    correct_count: correctCount,
+    total_questions: totalQuestions,
+    best_streak: bestStreak,
+  })
+}

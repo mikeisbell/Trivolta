@@ -87,6 +87,10 @@ export default function HomeScreen() {
                     cat.badgeType === 'ai' && styles.catCardAI,
                   ]}
                   activeOpacity={0.8}
+                  onPress={() => cat.id === 'custom'
+                    ? router.push({ pathname: '/custom-category' })
+                    : router.push({ pathname: '/question', params: { category: cat.label } })
+                  }
                 >
                   <View style={styles.catTop}>
                     <Text style={styles.catEmoji}>{cat.emoji}</Text>
@@ -119,6 +123,10 @@ export default function HomeScreen() {
             testID="home-quick-play"
             style={styles.quickPlay}
             activeOpacity={0.85}
+            onPress={() => {
+              const random = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]
+              router.push({ pathname: '/question', params: { category: random.label } })
+            }}
           >
             <Text style={styles.quickPlayText}>Quick play — random category</Text>
           </TouchableOpacity>
