@@ -5,6 +5,7 @@ import {
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { generateSoloQuestion, saveScore } from '../lib/api'
+import { getHistory, addToHistory } from '../lib/gameHistory'
 import { colors, radius, spacing } from '../lib/theme'
 import type { QuestionResponse, AnswerState, GameResult } from '../lib/types'
 
@@ -74,7 +75,8 @@ export default function QuestionScreen() {
     stopTimer()
 
     try {
-      const q = await generateSoloQuestion(category ?? 'general knowledge', streakRef.current)
+      const q = await generateSoloQuestion(category ?? 'general knowledge', streakRef.current, getHistory(category ?? ''))
+      addToHistory(category ?? '', q.question)
       setQuestion(q)
       setLoading(false)
       startTimer()

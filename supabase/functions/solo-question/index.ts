@@ -16,9 +16,13 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { category, streak = 0 } = await req.json()
+    const { category, streak = 0, previousQuestions = [] } = await req.json()
     const difficulty = difficultyFromStreak(streak)
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') })
+
+    const avoidClause = previousQuestions.length > 0
+      ? `\nDo NOT repeat any of these questions already asked this session:\n${previousQuestions.join('\n')}`
+      : ''
 
     const prompt = `Generate a trivia question about "${category}" at ${difficulty} difficulty.
 Return ONLY valid JSON with this exact shape — no markdown, no explanation:
@@ -30,11 +34,11 @@ Return ONLY valid JSON with this exact shape — no markdown, no explanation:
   "difficulty": "${difficulty}",
   "category": "${category}"
 }
-Pre-shuffle the answers array. correct_index must point to the correct answer after shuffling.`
+Pre-shuffle the answers array. correct_index must point to the correct answer after shuffling.${avoidClause}`
 
     const attempt = async () => {
       const msg = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 400,
         system: 'You are a trivia question generator. Return ONLY valid JSON. No markdown.',
         messages: [{ role: 'user', content: prompt }],

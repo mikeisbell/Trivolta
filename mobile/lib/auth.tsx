@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { createClient, Session, User } from '@supabase/supabase-js'
 import { supabase } from './supabase'
+import { clearSessionHistory } from './gameHistory'
 
 type AuthContextType = {
   session: Session | null
@@ -59,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
+    clearSessionHistory()
     const { error } = await supabase.auth.signOut()
     if (error) throw error
   }

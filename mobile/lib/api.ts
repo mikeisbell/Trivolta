@@ -17,9 +17,10 @@ async function callFunction(name: string, body: object): Promise<Response> {
 
 export async function generateSoloQuestion(
   category: string,
-  streak: number
+  streak: number,
+  previousQuestions: string[] = []
 ): Promise<QuestionResponse> {
-  const res = await callFunction('solo-question', { category, streak })
+  const res = await callFunction('solo-question', { category, streak, previousQuestions })
   if (!res.ok) throw new Error(`Question generation failed: ${res.status}`)
   return res.json()
 }

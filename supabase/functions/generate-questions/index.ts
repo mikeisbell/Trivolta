@@ -40,7 +40,7 @@ Pre-shuffle the answers. correct_index must point to correct answer after shuffl
 
       const attempt = async () => {
         const msg = await anthropic.messages.create({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 400,
           system: 'You are a trivia question generator. Return ONLY valid JSON. No markdown.',
           messages: [{ role: 'user', content: prompt }],
