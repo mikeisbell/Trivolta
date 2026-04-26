@@ -67,6 +67,16 @@ The generated `ios/` directory is gitignored — this command must be re-run aft
 
 ---
 
+## Testing Rules
+
+Always run the full Maestro suite after any change — all tests must pass before reporting done. Never pipe test output through `| tail -N` — it can truncate critical failure details. When a test fails, read the full debug output before attempting a fix. Do not guess at root cause.
+
+## Root Cause Before Fix
+
+For any failing test or bug, investigate actual root cause before writing a fix. Do not assume the test assertion is wrong — check the implementation first. State the diagnosed root cause in the response before making any file changes.
+
+---
+
 ## CLAUDE.md Update Rule
 
 Add an entry only when you discover a constraint that:
