@@ -1,3 +1,125 @@
+# INSTRUCTIONS_PROFILE_SCREEN.md — Trivolta Profile screen
+
+## Task
+Build the ProfileScreen with real data from Supabase. Shows the user's rank position,
+total score, username, tier title, XP progress, and achievements tab. Matches the v2
+premium dark design. Replaces the current placeholder.
+
+## Verifiable objective
+When complete:
+- `npx tsc --noEmit` exits with 0 errors
+- ProfileScreen loads with real username, total score, and games played from Supabase
+- Avatar shows user initials
+- Rank position shown (from leaderboard view)
+- XP bar fills proportionally based on total score
+- Achievements tab shows unlocked and locked badges
+- Sign out button still works
+- testID="profile-signout-button" still present
+- All 5 Maestro tests still pass
+- `git diff HEAD > ~/trivolta_diff.txt` captures all changes
+
+## Constraints
+- Read CLAUDE.md before writing a single file
+- All colors from lib/theme.ts — no inline hex strings
+- Real data from Supabase — no hardcoded stats
+- Keep testID="profile-signout-button" on the sign out button — Maestro depends on it
+- XP and level system: level = Math.floor(totalScore / 1000) + 1,
+  XP within level = totalScore % 1000, XP to next level = 1000
+- Tier titles by level: 1-2 = "Trivia Rookie", 3-4 = "Quiz Enthusiast",
+  5-7 = "Knowledge Seeker", 8-10 = "Trivia Expert", 11+ = "Quiz Master"
+- Achievements are hardcoded definitions checked against real data
+- Do not add Rewards or Goals tabs — Achievements tab only for v1
+- Loading state must be shown while fetching profile data
+
+---
+
+## Step 1 — Add profile data types to types.ts
+
+Add to `mobile/lib/types.ts`:
+
+```typescript
+export type Profile = {
+  id: string
+  username: string
+  avatar_url: string | null
+  total_score: number
+  best_streak: number
+  games_played: number
+  created_at: string
+}
+
+export type UserStats = {
+  profile: Profile
+  rank: number | null
+  totalScore: number
+  gamesPlayed: number
+  bestStreak: number
+  accuracy: number
+}
+```
+
+---
+
+## Step 2 — Add profile fetching to api.ts
+
+Add to `mobile/lib/api.ts`:
+
+```typescript
+export async function fetchUserStats(): Promise<UserStats | null> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return null
+
+  const userId = session.user.id
+
+  // Fetch profile
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single()
+
+  if (profileError || !profile) return null
+
+  // Fetch scores for accuracy calculation
+  const { data: scores } = await supabase
+    .from('scores')
+    .select('score, correct_count, total_questions, best_streak')
+    .eq('user_id', userId)
+
+  const totalScore = scores?.reduce((sum, s) => sum + s.score, 0) ?? 0
+  const totalCorrect = scores?.reduce((sum, s) => sum + s.correct_count, 0) ?? 0
+  const totalQuestions = scores?.reduce((sum, s) => sum + s.total_questions, 0) ?? 0
+  const bestStreak = scores?.reduce((max, s) => Math.max(max, s.best_streak), 0) ?? 0
+  const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0
+
+  // Fetch rank from leaderboard view
+  const { data: leaderboard } = await supabase
+    .from('leaderboard')
+    .select('id')
+    .order('total_score', { ascending: false })
+
+  const rank = leaderboard
+    ? leaderboard.findIndex(row => row.id === userId) + 1
+    : null
+
+  return {
+    profile,
+    rank: rank && rank > 0 ? rank : null,
+    totalScore,
+    gamesPlayed: scores?.length ?? 0,
+    bestStreak,
+    accuracy,
+  }
+}
+```
+
+---
+
+## Step 3 — Build the ProfileScreen
+
+Replace the contents of `mobile/app/(tabs)/profile.tsx`:
+
+```typescript
 import { useEffect, useState } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -303,7 +425,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 2,
     borderColor: colors.purple,
-    backgroundColor: colors.purpleDeep,
+    backgroundColor: '#4c1d95',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
@@ -457,3 +579,88 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
 })
+```
+
+---
+
+## Step 4 — Add Maestro test for Profile screen
+
+Create `mobile/maestro/test_06_profile_screen.yaml`:
+
+```yaml
+appId: com.mikeisbell.trivolta
+---
+# test_06: Profile screen loads with real data
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign in
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+# Navigate to Profile tab
+- tapOn:
+    id: "tab-profile"
+
+# Profile screen should load
+- extendedWaitUntil:
+    visible:
+      id: "profile-screen"
+    timeout: 10000
+
+# Sign out button should be visible
+- assertVisible:
+    id: "profile-signout-button"
+```
+
+Add to `mobile/package.json` scripts:
+```json
+"test:e2e:06": "maestro test maestro/test_06_profile_screen.yaml"
+```
+
+---
+
+## Verification
+
+```bash
+# 1. TypeScript
+cd /Users/mizzy/Developer/Trivolta/mobile
+npx tsc --noEmit
+
+# 2. Launch and confirm visually
+# Profile tab shows: avatar with initials, username, tier title,
+# total score, XP bar, stats row, achievements grid
+
+# 3. Run all 6 Maestro tests
+export PATH="$HOME/.maestro/bin:$PATH"
+maestro test maestro/
+
+# 4. Diff
+cd /Users/mizzy/Developer/Trivolta
+git diff HEAD > ~/trivolta_diff.txt
+echo "Lines changed: $(wc -l < ~/trivolta_diff.txt)"
+```
+
+Report:
+- TypeScript: PASS/FAIL
+- Visual: profile data visible (username, score, achievements)
+- test_01 through test_06: PASS/FAIL each
+
+Do not report success until TypeScript passes and all 6 tests pass.

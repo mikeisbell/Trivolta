@@ -1,11 +1,15 @@
 appId: com.mikeisbell.trivolta
 ---
 # test_02: Sign up with fresh credentials navigates to HomeScreen
-# Uses a timestamp-based email to avoid conflicts across runs
+# Deletes testuser_maestro_02@trivolta-test.com before each run so signup always succeeds
 
 - clearState
 - launchApp:
     clearState: true
+
+# Delete the test user from Supabase so this test is idempotent
+- runScript: ./scripts/delete_test_user.js
+- waitForAnimationToEnd
 
 # Switch to sign up mode
 - tapOn:
@@ -14,12 +18,12 @@ appId: com.mikeisbell.trivolta
 # Fill in username
 - tapOn:
     id: "auth-username-input"
-- inputText: "testuser"
+- inputText: "maestro02"
 
-# Fill in email (use a fixed test email — db is reset between CI runs)
+# Fill in email
 - tapOn:
     id: "auth-email-input"
-- inputText: "signup_test@trivolta-test.com"
+- inputText: "testuser_maestro_02@trivolta-test.com"
 
 # Fill in password
 - tapOn:

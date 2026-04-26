@@ -6,6 +6,7 @@ export const colors = {
   purple: '#7c3aed',
   purpleLight: '#a78bfa',
   purplePale: '#c4b5fd',
+  purpleDeep: '#4c1d95',
   purpleDim: 'rgba(124,58,237,0.15)',
   purpleBorder: 'rgba(124,58,237,0.3)',
   gold: '#f59e0b',

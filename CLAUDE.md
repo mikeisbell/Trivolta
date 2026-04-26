@@ -53,6 +53,20 @@ No interstitials, no banners. Do not add non-rewarded ad placements without an e
 
 ---
 
+## Maestro Testing Requires Native Build
+
+Maestro E2E tests use `appId: com.mikeisbell.trivolta`. This only works when the app is installed as a native build on the simulator — not via Expo Go. Expo Go runs under `host.exp.Exponent` and Maestro cannot find the app by our bundle ID.
+
+Before running Maestro tests, the app must be built and installed natively:
+```bash
+cd mobile
+npx expo prebuild --platform ios --clean
+npx expo run:ios
+```
+The generated `ios/` directory is gitignored — this command must be re-run after any fresh clone or after `ios/` is deleted.
+
+---
+
 ## CLAUDE.md Update Rule
 
 Add an entry only when you discover a constraint that:

@@ -1,0 +1,51 @@
+appId: com.mikeisbell.trivolta
+---
+# test_05: Custom category screen — type a topic and start a quiz
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign in first
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- waitForAnimationToEnd
+- assertVisible:
+    id: "home-screen"
+
+# Tap the Any topic category card
+- tapOn:
+    id: "home-category-custom"
+
+# Custom category screen should appear
+- waitForAnimationToEnd
+- assertVisible:
+    id: "custom-category-input"
+
+# Tap an example prompt pill
+- tapOn:
+    id: "custom-category-prompt-nasa-missions"
+
+# Input should be filled
+- assertVisible:
+    text: "NASA missions"
+
+# Tap Go to start quiz
+- tapOn:
+    id: "custom-category-submit"
+
+# Question screen should load
+- waitForAnimationToEnd
+- assertVisible:
+    id: "question-screen"

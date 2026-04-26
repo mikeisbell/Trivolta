@@ -1,5 +1,4 @@
 import { Tabs } from 'expo-router'
-import { Pressable } from 'react-native'
 import { colors } from '../../lib/theme'
 
 export default function TabLayout() {
@@ -39,20 +38,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarButton: (props) => {
-            const { onPress, children, style, accessibilityRole, accessibilityState } = props as any
-            return (
-              <Pressable
-                testID="tab-profile"
-                onPress={() => onPress?.()}
-                style={style}
-                accessibilityRole={accessibilityRole}
-                accessibilityState={accessibilityState}
-              >
-                {children}
-              </Pressable>
-            )
-          },
+          tabBarButtonTestID: 'tab-profile',
         }}
       />
     </Tabs>

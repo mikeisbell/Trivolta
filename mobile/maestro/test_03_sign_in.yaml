@@ -1,7 +1,7 @@
 appId: com.mikeisbell.trivolta
 ---
 # test_03: Sign in with existing credentials navigates to HomeScreen
-# Depends on test_02 having created signup_test@trivolta-test.com
+# Depends on test_02 having created testuser_maestro_02@trivolta-test.com
 
 - clearState
 - launchApp:
@@ -13,7 +13,7 @@ appId: com.mikeisbell.trivolta
 
 - tapOn:
     id: "auth-email-input"
-- inputText: "signup_test@trivolta-test.com"
+- inputText: "testuser_maestro_02@trivolta-test.com"
 
 - tapOn:
     id: "auth-password-input"

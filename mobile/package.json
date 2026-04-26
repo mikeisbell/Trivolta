@@ -11,7 +11,9 @@
     "test:e2e:01": "maestro test maestro/test_01_auth_screen_on_launch.yaml",
     "test:e2e:02": "maestro test maestro/test_02_sign_up.yaml",
     "test:e2e:03": "maestro test maestro/test_03_sign_in.yaml",
-    "test:e2e:04": "maestro test maestro/test_04_sign_out.yaml"
+    "test:e2e:04": "maestro test maestro/test_04_sign_out.yaml",
+    "test:e2e:05": "maestro test maestro/test_05_custom_category.yaml",
+    "test:e2e:06": "maestro test maestro/test_06_profile_screen.yaml"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

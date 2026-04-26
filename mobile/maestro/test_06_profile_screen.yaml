@@ -1,49 +1,42 @@
 appId: com.mikeisbell.trivolta
 ---
-# test_04: Sign out from ProfileScreen returns to auth screen
+# test_06: Profile screen loads with real data
 
 - clearState
 - launchApp:
     clearState: true
 
-# Sign in first
+# Sign in
 - assertVisible:
     id: "auth-email-input"
-
 - tapOn:
     id: "auth-email-input"
 - inputText: "testuser_maestro_02@trivolta-test.com"
-
 - tapOn:
     id: "auth-password-input"
 - inputText: "TestPassword123!"
-
 - tapOn:
     id: "auth-submit-button"
-
-# Dismiss iOS "Save Password?" system dialog if it appears
 - tapOn:
     text: "Not Now"
     optional: true
-
 - extendedWaitUntil:
     visible:
       id: "home-screen"
     timeout: 15000
 
 # Navigate to Profile via avatar button
+# Note: tab bar taps do not propagate in Maestro's Expo dev client environment.
+# home-avatar uses router.navigate directly and is the reliable navigation path.
 - tapOn:
     id: "home-avatar"
 
-# Tap sign out button
-- tapOn:
-    id: "profile-signout-button"
-
-# Confirm the alert
-- tapOn: "Confirm"
-
-# Should be back at auth screen
+# Profile screen should load
 - extendedWaitUntil:
     visible:
-      id: "auth-submit-button"
-    timeout: 15000
+      id: "profile-screen"
+    timeout: 10000
+
+# Sign out button should be visible
+- assertVisible:
+    id: "profile-signout-button"

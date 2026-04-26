@@ -1,3 +1,38 @@
+# INSTRUCTIONS_CUSTOM_CATEGORY_SCREEN.md — Trivolta custom category screen
+
+## Task
+Build the CustomCategoryScreen — Trivolta's biggest differentiator. Users can type any
+topic and the AI generates a quiz on it instantly. Also shows trending categories pulled
+from recent popular plays. Tapping any topic (typed or trending) navigates to
+QuestionScreen with that category.
+
+## Verifiable objective
+When complete:
+- `npx tsc --noEmit` exits with 0 errors
+- Tapping "Any topic" category card on HomeScreen navigates to CustomCategoryScreen
+- User can type any topic in the input field
+- Tapping "Go" or pressing submit navigates to QuestionScreen with the typed topic
+- Trending categories are displayed and tappable
+- Example pill prompts are displayed and tappable — tapping one fills the input
+- All 4 Maestro auth tests still pass
+- `git diff HEAD > ~/trivolta_diff.txt` captures all changes
+
+## Constraints
+- Read CLAUDE.md before writing a single file
+- Use colors and spacing exclusively from lib/theme.ts
+- Trending categories are hardcoded for now — no Supabase query yet
+- Input must trim whitespace and reject empty submissions
+- Do not add a new tab — this screen is pushed onto the Stack navigator
+- Keep the existing testIDs on all other screens intact
+- Add testIDs to all interactive elements on this screen
+
+---
+
+## Step 1 — Replace CustomCategoryScreen
+
+Replace the contents of `mobile/app/custom-category.tsx`:
+
+```typescript
 import { useState, useRef } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
@@ -257,3 +292,116 @@ const styles = StyleSheet.create({
   trendingMeta: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
   trendingChevron: { fontSize: 18, color: colors.textHint },
 })
+```
+
+---
+
+## Step 2 — Verify HomeScreen already wires to CustomCategoryScreen
+
+Confirm that `mobile/app/(tabs)/index.tsx` already has:
+```typescript
+onPress={() => router.push({ pathname: '/custom-category' })}
+```
+on the custom/AI category card. If not, add it.
+
+---
+
+## Step 3 — Add Maestro test for custom category
+
+Create `mobile/maestro/test_05_custom_category.yaml`:
+
+```yaml
+appId: com.mikeisbell.trivolta
+---
+# test_05: Custom category screen — type a topic and start a quiz
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign in first
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "signup_test@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn: "Not Now"
+- assertVisible:
+    id: "home-screen"
+    timeout: 15000
+
+# Tap the Any topic category card
+- tapOn:
+    id: "home-category-custom"
+
+# Custom category screen should appear
+- assertVisible:
+    id: "custom-category-input"
+    timeout: 5000
+
+# Tap an example prompt pill
+- tapOn:
+    id: "custom-category-prompt-nasa-missions"
+
+# Input should be filled
+- assertVisible:
+    text: "NASA missions"
+
+# Tap Go to start quiz
+- tapOn:
+    id: "custom-category-submit"
+
+# Question screen should load
+- assertVisible:
+    id: "question-screen"
+    timeout: 15000
+```
+
+Add the new test script to `mobile/package.json` scripts:
+```json
+"test:e2e:05": "maestro test maestro/test_05_custom_category.yaml"
+```
+
+---
+
+## Verification
+
+```bash
+# 1. TypeScript
+cd /Users/mizzy/Developer/Trivolta/mobile
+npx tsc --noEmit
+
+# 2. Launch and visually confirm
+npx expo start --ios
+# Confirm:
+# - Tapping "Any topic" card on HomeScreen opens CustomCategoryScreen
+# - Input field accepts text
+# - Tapping a prompt pill fills the input
+# - Tapping Go navigates to QuestionScreen with that topic
+# - Trending rows are tappable and navigate to QuestionScreen
+
+# 3. All 5 Maestro tests
+export PATH="$HOME/.maestro/bin:$PATH"
+maestro test maestro/test_01_auth_screen_on_launch.yaml
+maestro test maestro/test_02_sign_up.yaml
+maestro test maestro/test_03_sign_in.yaml
+maestro test maestro/test_04_sign_out.yaml
+maestro test maestro/test_05_custom_category.yaml
+
+# 4. Diff
+cd /Users/mizzy/Developer/Trivolta
+git diff HEAD > ~/trivolta_diff.txt
+echo "Lines changed: $(wc -l < ~/trivolta_diff.txt)"
+```
+
+Report:
+- TypeScript: PASS/FAIL
+- Visual: custom category screen visible, input works, trending tappable
+- test_01 through test_05: PASS/FAIL each
+
+Do not report success until TypeScript passes and all 5 Maestro tests pass.

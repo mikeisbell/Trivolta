@@ -41,6 +41,25 @@ export type GameSession = {
   starts_at: string
 }
 
+export type Profile = {
+  id: string
+  username: string
+  avatar_url: string | null
+  total_score: number
+  best_streak: number
+  games_played: number
+  created_at: string
+}
+
+export type UserStats = {
+  profile: Profile
+  rank: number | null
+  totalScore: number
+  gamesPlayed: number
+  bestStreak: number
+  accuracy: number
+}
+
 export type AnswerState = 'unanswered' | 'correct' | 'wrong' | 'timeout'
 
 export type GameResult = {
