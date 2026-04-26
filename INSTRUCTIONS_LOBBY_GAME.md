@@ -1,3 +1,137 @@
+# INSTRUCTIONS_LOBBY_GAME.md — LobbyGameScreen
+
+## Task
+
+Build LobbyGameScreen — the synchronous multiplayer game loop. All players see the same question at the same time, timed by a server-authoritative `starts_at` timestamp from `game_sessions`. Players answer, answers are saved to `lobby_answers`, and after all 10 questions the screen navigates to `/lobby/results`.
+
+Key architectural rules (from CLAUDE.md):
+- Timer is derived from `game_sessions.starts_at` — never from the client clock as source of truth
+- Questions were pre-generated and stored in `lobby_questions` before this screen was entered
+- The host advances questions by writing new rows to `game_sessions` — guests subscribe via Realtime
+- Do NOT generate questions on this screen
+
+---
+
+## Verifiable Objective
+
+- [ ] Screen renders question text — testID `lobby-game-question`
+- [ ] 4 answer buttons render — testIDs `lobby-game-answer-0` through `lobby-game-answer-3`
+- [ ] Timer bar renders and counts down from 20s using `starts_at` from `game_sessions` — testID `lobby-game-timer`
+- [ ] Question progress shows `X / 10` — testID `lobby-game-progress`
+- [ ] Current player score shown — testID `lobby-game-score`
+- [ ] Selecting an answer saves a row to `lobby_answers` and disables all buttons
+- [ ] Correct/wrong answer feedback shown after selection or timeout (matching solo question.tsx style)
+- [ ] Host sees "Next question" button after answering — testID `lobby-game-next`; guest does NOT
+- [ ] Host tapping "Next question" writes the next `game_sessions` row with a new `starts_at` (now + 2 seconds buffer)
+- [ ] Guests auto-advance to next question via Realtime subscription on `game_sessions`
+- [ ] After question 10: host taps "See results", all players navigate to `/lobby/results` with `lobbyId`
+- [ ] Host advancing past question 10 updates `lobbies.status` to `finished`
+- [ ] `npx tsc --noEmit` passes with 0 errors
+
+---
+
+## Constraints
+
+- Timer source of truth: `starts_at` from `game_sessions`. On mount, calculate `deadline = new Date(starts_at).getTime() + 20000`. Count down using `Date.now()` against deadline every 100ms. Do NOT use `TIMER_SECONDS - elapsed` with a local start time.
+- Do NOT re-generate questions — fetch them from `lobby_questions` by `lobby_id` and `question_index`
+- Do NOT re-shuffle answers — they arrived pre-shuffled from `generate-questions`. Do not sort or reorder.
+- Supabase RLS: only the host can update `lobbies`. Only authenticated users can insert into `lobby_answers` for their own `user_id`. Do not use service role key on the client.
+- Use Realtime `postgres_changes` subscription on `game_sessions` (filter `lobby_id=eq.{lobbyId}`) for guests to detect host advancing questions. Unsubscribe on cleanup.
+- `lobby_answers` insert must be idempotent-safe: wrap in try/catch, ignore duplicate key errors (user may have already answered before a re-render).
+- Do NOT modify `waiting.tsx`, `api.ts` existing functions, or any screen outside `game.tsx`.
+- The `isHost` param arrives as string `'1'` or `'0'` — convert with `isHostParam === '1'`.
+- Score calculation: same formula as `question.tsx` — `Math.round(100 * (timeLeft / 20) * (1 + streak * 0.1))`. `timeLeft` = seconds remaining at time of answer.
+
+---
+
+## Steps
+
+### Step 1 — Add lobby game API functions to `api.ts`
+
+Append to `/Users/mizzy/Developer/Trivolta/mobile/lib/api.ts`:
+
+```typescript
+export async function fetchLobbyQuestion(
+  lobbyId: string,
+  questionIndex: number
+): Promise<{ question: string; answers: string[]; correct_index: number; explanation: string; difficulty: string } | null> {
+  const { data, error } = await supabase
+    .from('lobby_questions')
+    .select('question, answers, correct_index, explanation, difficulty')
+    .eq('lobby_id', lobbyId)
+    .eq('question_index', questionIndex)
+    .single()
+
+  if (error || !data) return null
+  return data as any
+}
+
+export async function fetchGameSession(
+  lobbyId: string,
+  questionIndex: number
+): Promise<{ starts_at: string } | null> {
+  const { data, error } = await supabase
+    .from('game_sessions')
+    .select('starts_at')
+    .eq('lobby_id', lobbyId)
+    .eq('question_index', questionIndex)
+    .single()
+
+  if (error || !data) return null
+  return data
+}
+
+export async function createGameSession(
+  lobbyId: string,
+  questionIndex: number
+): Promise<void> {
+  // starts_at = 2 seconds from now (buffer for guests to receive and render)
+  const startsAt = new Date(Date.now() + 2000).toISOString()
+  const { error } = await supabase
+    .from('game_sessions')
+    .insert({ lobby_id: lobbyId, question_index: questionIndex, starts_at: startsAt })
+
+  if (error) throw new Error(error.message)
+}
+
+export async function submitLobbyAnswer(
+  lobbyId: string,
+  questionIndex: number,
+  answerIndex: number
+): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return
+
+  const { error } = await supabase
+    .from('lobby_answers')
+    .insert({
+      lobby_id: lobbyId,
+      user_id: session.user.id,
+      question_index: questionIndex,
+      answer_index: answerIndex,
+    })
+
+  // Ignore duplicate key error (23505) — answer already submitted
+  if (error && !error.message.includes('duplicate') && !error.code?.includes('23505')) {
+    throw new Error(error.message)
+  }
+}
+
+export async function finishLobbyGame(lobbyId: string): Promise<void> {
+  const { error } = await supabase
+    .from('lobbies')
+    .update({ status: 'finished' })
+    .eq('id', lobbyId)
+
+  if (error) throw new Error(error.message)
+}
+```
+
+### Step 2 — Build `game.tsx`
+
+Replace the entire contents of `/Users/mizzy/Developer/Trivolta/mobile/app/lobby/game.tsx`:
+
+```typescript
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -432,3 +566,65 @@ const styles = StyleSheet.create({
   },
   waitingText: { color: colors.textMuted, fontSize: 13, fontWeight: '500' },
 })
+```
+
+### Step 3 — Add stub `/lobby/results` route
+
+Create `/Users/mizzy/Developer/Trivolta/mobile/app/lobby/results.tsx`:
+
+```typescript
+import { View, Text, StyleSheet } from 'react-native'
+import { colors } from '../../lib/theme'
+
+export default function LobbyResultsScreen() {
+  return (
+    <View style={styles.root}>
+      <Text style={styles.text}>LobbyResultsScreen — coming soon</Text>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
+  text: { color: colors.textSecondary, fontSize: 15 },
+})
+```
+
+### Step 4 — Update TRIVOLTA_TRACKER.md
+
+Mark `LobbyGameScreen` as ✅ Done. Mark `Server-timestamp timer for lobby games` as ✅. Add `INSTRUCTIONS_LOBBY_GAME.md` to INSTRUCTIONS Files Written.
+
+---
+
+## Verification
+
+Run in order. Do not report success until all pass.
+
+```bash
+# 1. TypeScript check
+cd /Users/mizzy/Developer/Trivolta/mobile
+npx tsc --noEmit
+
+# 2. Confirm files exist
+ls /Users/mizzy/Developer/Trivolta/mobile/app/lobby/game.tsx
+ls /Users/mizzy/Developer/Trivolta/mobile/app/lobby/results.tsx
+
+# 3. Confirm testIDs in game.tsx
+grep -c "testID" /Users/mizzy/Developer/Trivolta/mobile/app/lobby/game.tsx
+
+# 4. Confirm server-timestamp timer (deadline-based, not elapsed-based)
+grep "deadline" /Users/mizzy/Developer/Trivolta/mobile/app/lobby/game.tsx
+
+# 5. Confirm Realtime subscription present
+grep "postgres_changes" /Users/mizzy/Developer/Trivolta/mobile/app/lobby/game.tsx
+
+# 6. Confirm removeChannel cleanup
+grep "removeChannel" /Users/mizzy/Developer/Trivolta/mobile/app/lobby/game.tsx
+
+# 7. Capture diff
+cd /Users/mizzy/Developer/Trivolta
+git diff HEAD > ~/trivolta_diff.txt
+echo "Lines changed: $(wc -l < ~/trivolta_diff.txt)"
+```
+
+Report each check result. Do not commit — Mac Claude reviews the diff first.

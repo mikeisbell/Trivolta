@@ -181,6 +181,81 @@ export async function leaveLobby(lobbyId: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+export async function fetchLobbyQuestion(
+  lobbyId: string,
+  questionIndex: number
+): Promise<{ question: string; answers: string[]; correct_index: number; explanation: string; difficulty: string } | null> {
+  const { data, error } = await supabase
+    .from('lobby_questions')
+    .select('question, answers, correct_index, explanation, difficulty')
+    .eq('lobby_id', lobbyId)
+    .eq('question_index', questionIndex)
+    .single()
+
+  if (error || !data) return null
+  return data as any
+}
+
+export async function fetchGameSession(
+  lobbyId: string,
+  questionIndex: number
+): Promise<{ starts_at: string } | null> {
+  const { data, error } = await supabase
+    .from('game_sessions')
+    .select('starts_at')
+    .eq('lobby_id', lobbyId)
+    .eq('question_index', questionIndex)
+    .single()
+
+  if (error || !data) return null
+  return data
+}
+
+export async function createGameSession(
+  lobbyId: string,
+  questionIndex: number
+): Promise<void> {
+  // starts_at = 2 seconds from now (buffer for guests to receive and render)
+  const startsAt = new Date(Date.now() + 2000).toISOString()
+  const { error } = await supabase
+    .from('game_sessions')
+    .insert({ lobby_id: lobbyId, question_index: questionIndex, starts_at: startsAt })
+
+  if (error) throw new Error(error.message)
+}
+
+export async function submitLobbyAnswer(
+  lobbyId: string,
+  questionIndex: number,
+  answerIndex: number
+): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return
+
+  const { error } = await supabase
+    .from('lobby_answers')
+    .insert({
+      lobby_id: lobbyId,
+      user_id: session.user.id,
+      question_index: questionIndex,
+      answer_index: answerIndex,
+    })
+
+  // Ignore duplicate key error (23505) — answer already submitted
+  if (error && !error.message.includes('duplicate') && !error.code?.includes('23505')) {
+    throw new Error(error.message)
+  }
+}
+
+export async function finishLobbyGame(lobbyId: string): Promise<void> {
+  const { error } = await supabase
+    .from('lobbies')
+    .update({ status: 'finished' })
+    .eq('id', lobbyId)
+
+  if (error) throw new Error(error.message)
+}
+
 export async function saveScore(
   category: string,
   score: number,

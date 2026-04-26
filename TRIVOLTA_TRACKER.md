@@ -30,7 +30,7 @@
 ✅ Lobby — CreateLobbyScreen
 ✅ Lobby — JoinLobbyScreen
 ✅ Lobby — LobbyWaitingScreen (real-time player list via Supabase Realtime)
-⬜ Lobby — LobbyGameScreen (synchronous play, server-timestamp timer)
+✅ Lobby — LobbyGameScreen (synchronous play, server-timestamp timer)
 ⬜ Lobby — LobbyResultScreen (final scores for all players)
 ⬜ Daily Challenge — real implementation (not just a card)
 
@@ -43,7 +43,7 @@
 ✅ Tab navigator (Home, Play, Ranks, Profile)
 ✅ Auth routing gate
 ⬜ Real-time lobby synchronisation (Supabase Realtime)
-⬜ Server-timestamp timer for lobby games
+✅ Server-timestamp timer for lobby games
 ✅ Room code join flow
 ⬜ Lobby question generation (all 10 before game start)
 ⬜ Daily challenge logic (server-side, resets at midnight)
@@ -144,7 +144,7 @@
 ✅ INSTRUCTIONS_LEADERBOARD_SCREEN.md
 ✅ INSTRUCTIONS_LOBBY_CREATE_JOIN.md
 ✅ INSTRUCTIONS_LOBBY_WAITING.md
-⬜ INSTRUCTIONS_LOBBY_GAME.md
+✅ INSTRUCTIONS_LOBBY_GAME.md
 ⬜ INSTRUCTIONS_LOBBY_RESULTS.md
 ⬜ INSTRUCTIONS_DAILY_CHALLENGE.md
 ⬜ INSTRUCTIONS_ADMOB.md
