@@ -8,7 +8,11 @@ appId: com.mikeisbell.trivolta
     clearState: true
 
 # Delete the test user from Supabase so this test is idempotent
-- runScript: ./scripts/delete_test_user.js
+- runScript:
+    file: ./scripts/delete_test_user.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
 - waitForAnimationToEnd
 
 # Switch to sign up mode
