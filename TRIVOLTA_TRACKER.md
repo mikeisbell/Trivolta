@@ -15,7 +15,7 @@
 ✅ Database schema — profiles, scores, lobbies, lobby_players, lobby_questions, game_sessions, lobby_answers
 ✅ RLS policies on all tables
 ✅ Leaderboard view (top 50, last 30 days)
-✅ Edge Functions — solo-question, generate-questions, create-lobby
+✅ Edge Functions — solo-question, generate-questions, create-lobby, join-lobby
 ✅ CLAUDE.md — project source of truth
 ✅ theme.ts — single source of visual truth
 
@@ -27,9 +27,9 @@
 ✅ CustomCategoryScreen — any topic input, example prompts, trending categories
 ✅ ProfileScreen — real stats from Supabase, achievements, XP, level
 ✅ LeaderboardScreen — podium top 3, rank rows with movement arrows, global/weekly tabs
-⬜ Lobby — CreateLobbyScreen
-⬜ Lobby — JoinLobbyScreen
-⬜ Lobby — LobbyWaitingScreen (real-time player list via Supabase Realtime)
+✅ Lobby — CreateLobbyScreen
+✅ Lobby — JoinLobbyScreen
+✅ Lobby — LobbyWaitingScreen (real-time player list via Supabase Realtime)
 ⬜ Lobby — LobbyGameScreen (synchronous play, server-timestamp timer)
 ⬜ Lobby — LobbyResultScreen (final scores for all players)
 ⬜ Daily Challenge — real implementation (not just a card)
@@ -44,7 +44,7 @@
 ✅ Auth routing gate
 ⬜ Real-time lobby synchronisation (Supabase Realtime)
 ⬜ Server-timestamp timer for lobby games
-⬜ Room code join flow
+✅ Room code join flow
 ⬜ Lobby question generation (all 10 before game start)
 ⬜ Daily challenge logic (server-side, resets at midnight)
 ⬜ AdMob rewarded ads integration
@@ -142,9 +142,8 @@
 ✅ INSTRUCTIONS_CUSTOM_CATEGORY_SCREEN.md
 ✅ INSTRUCTIONS_PROFILE_SCREEN.md
 ✅ INSTRUCTIONS_LEADERBOARD_SCREEN.md
-⬜ INSTRUCTIONS_LOBBY_CREATE.md
-⬜ INSTRUCTIONS_LOBBY_JOIN.md
-⬜ INSTRUCTIONS_LOBBY_WAITING.md
+✅ INSTRUCTIONS_LOBBY_CREATE_JOIN.md
+✅ INSTRUCTIONS_LOBBY_WAITING.md
 ⬜ INSTRUCTIONS_LOBBY_GAME.md
 ⬜ INSTRUCTIONS_LOBBY_RESULTS.md
 ⬜ INSTRUCTIONS_DAILY_CHALLENGE.md

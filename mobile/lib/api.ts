@@ -41,6 +41,15 @@ export async function generateLobbyQuestions(
   return res.json()
 }
 
+export async function joinLobby(code: string) {
+  const res = await callFunction('join-lobby', { code })
+  if (!res.ok) {
+    const body = await res.json()
+    throw new Error(body.error ?? `Join lobby failed: ${res.status}`)
+  }
+  return res.json()
+}
+
 export async function fetchUserStats(): Promise<UserStats | null> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return null
@@ -132,6 +141,44 @@ export async function fetchLeaderboard(
     .sort((a, b) => b.total_score - a.total_score)
     .slice(0, 50)
     .map((entry, i) => ({ ...entry, rank: i + 1 }))
+}
+
+export async function fetchLobbyPlayers(
+  lobbyId: string
+): Promise<{ user_id: string; username: string }[]> {
+  const { data, error } = await supabase
+    .from('lobby_players')
+    .select('user_id, profiles(username)')
+    .eq('lobby_id', lobbyId)
+
+  if (error || !data) return []
+
+  return data.map((row: any) => ({
+    user_id: row.user_id,
+    username: Array.isArray(row.profiles) ? row.profiles[0]?.username : row.profiles?.username ?? 'Unknown',
+  }))
+}
+
+export async function startLobbyGame(lobbyId: string): Promise<void> {
+  const { error } = await supabase
+    .from('lobbies')
+    .update({ status: 'active' })
+    .eq('id', lobbyId)
+
+  if (error) throw new Error(error.message)
+}
+
+export async function leaveLobby(lobbyId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return
+
+  const { error } = await supabase
+    .from('lobby_players')
+    .delete()
+    .eq('lobby_id', lobbyId)
+    .eq('user_id', session.user.id)
+
+  if (error) throw new Error(error.message)
 }
 
 export async function saveScore(

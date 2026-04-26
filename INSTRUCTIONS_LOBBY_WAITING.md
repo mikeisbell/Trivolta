@@ -1,3 +1,101 @@
+# INSTRUCTIONS_LOBBY_WAITING.md — LobbyWaitingScreen
+
+## Task
+
+Build LobbyWaitingScreen — the pre-game staging area where players wait before a lobby game starts. This screen is reached from both CreateLobbyScreen (host) and JoinLobbyScreen (guest). It must:
+
+- Show the room code prominently (for the host to share)
+- Show a real-time player list using Supabase Realtime subscription on `lobby_players`
+- Show each player's username (joined from `profiles`)
+- Allow the host to start the game (triggers question generation, then navigates all players to LobbyGameScreen)
+- Allow a guest to leave the lobby (removes them from `lobby_players`, navigates back)
+- Poll `lobbies.status` via Realtime and auto-navigate guests to LobbyGameScreen when status becomes `active`
+
+This screen does NOT build LobbyGameScreen — that is a separate INSTRUCTIONS file.
+
+---
+
+## Verifiable Objective
+
+- [ ] Screen renders with room code displayed in large text — testID `lobby-waiting-code`
+- [ ] Player list renders with at least one entry (the current user) — testID `lobby-waiting-player-list`
+- [ ] Each player row has testID `lobby-waiting-player-{username}`
+- [ ] Player count badge shows `X / 8` — testID `lobby-waiting-player-count`
+- [ ] Host sees "Start game" button — testID `lobby-waiting-start`; guest does NOT see it
+- [ ] Guest sees "Leave lobby" button — testID `lobby-waiting-leave`; host does NOT see it
+- [ ] "Start game" is disabled when player count is < 2 — enabled at 2+
+- [ ] Tapping "Start game" calls `generateLobbyQuestions`, updates `lobbies.status` to `active`, then navigates host to `/lobby/game` with `lobbyId` param
+- [ ] Guests auto-navigate to `/lobby/game` when `lobbies.status` becomes `active` via Realtime
+- [ ] `npx tsc --noEmit` passes with 0 errors
+
+---
+
+## Constraints
+
+- Use Supabase Realtime channel subscription for `lobby_players` — do NOT poll with `setInterval`
+- Use a second Realtime subscription for `lobbies` to detect status change to `active`
+- Subscribe in `useEffect`, unsubscribe on cleanup (return unsubscribe function)
+- Do NOT build LobbyGameScreen — navigate to `/lobby/game` as a stub route only
+- Do NOT modify `create.tsx`, `join.tsx`, `api.ts` types, or any existing screen
+- Do NOT use `@supabase/realtime-js` directly — use the Realtime API on the `supabase` client from `lib/supabase`
+- Do NOT add a `join-lobby` Edge Function — it already exists
+- The `isHost` param arrives as a string `'1'` or `'0'` from router params — convert to boolean with `isHost === '1'`
+- After "Start game": call `generateLobbyQuestions` first, await completion, then update lobby status to `active`. Do not update status before questions are generated.
+- Add a loading state during question generation ("Generating questions…") that disables the start button and shows an ActivityIndicator
+
+---
+
+## Steps
+
+### Step 1 — Add `fetchLobbyPlayers`, `startLobbyGame`, and `leaveLobby` to `api.ts`
+
+Append to `/Users/mizzy/Developer/Trivolta/mobile/lib/api.ts`:
+
+```typescript
+export async function fetchLobbyPlayers(
+  lobbyId: string
+): Promise<{ user_id: string; username: string }[]> {
+  const { data, error } = await supabase
+    .from('lobby_players')
+    .select('user_id, profiles(username)')
+    .eq('lobby_id', lobbyId)
+
+  if (error || !data) return []
+
+  return data.map((row: any) => ({
+    user_id: row.user_id,
+    username: Array.isArray(row.profiles) ? row.profiles[0]?.username : row.profiles?.username ?? 'Unknown',
+  }))
+}
+
+export async function startLobbyGame(lobbyId: string): Promise<void> {
+  const { error } = await supabase
+    .from('lobbies')
+    .update({ status: 'active' })
+    .eq('id', lobbyId)
+
+  if (error) throw new Error(error.message)
+}
+
+export async function leaveLobby(lobbyId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return
+
+  const { error } = await supabase
+    .from('lobby_players')
+    .delete()
+    .eq('lobby_id', lobbyId)
+    .eq('user_id', session.user.id)
+
+  if (error) throw new Error(error.message)
+}
+```
+
+### Step 2 — Build `waiting.tsx`
+
+Replace the contents of `/Users/mizzy/Developer/Trivolta/mobile/app/lobby/waiting.tsx` entirely:
+
+```typescript
 import { useEffect, useRef, useState } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -353,3 +451,62 @@ const styles = StyleSheet.create({
     color: colors.danger,
   },
 })
+```
+
+### Step 3 — Add stub `/lobby/game` route
+
+Create `/Users/mizzy/Developer/Trivolta/mobile/app/lobby/game.tsx` with a minimal stub so navigation doesn't crash:
+
+```typescript
+import { View, Text, StyleSheet } from 'react-native'
+import { colors } from '../../lib/theme'
+
+export default function LobbyGameScreen() {
+  return (
+    <View style={styles.root}>
+      <Text style={styles.text}>LobbyGameScreen — coming soon</Text>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
+  text: { color: colors.textSecondary, fontSize: 15 },
+})
+```
+
+### Step 4 — Update TRIVOLTA_TRACKER.md
+
+Mark `LobbyWaitingScreen` as ✅ Done. Add `INSTRUCTIONS_LOBBY_WAITING.md` to the INSTRUCTIONS Files Written section.
+
+---
+
+## Verification
+
+Run in order. Do not report success until all pass.
+
+```bash
+# 1. TypeScript check
+cd /Users/mizzy/Developer/Trivolta/mobile
+npx tsc --noEmit
+
+# 2. Confirm files exist
+ls /Users/mizzy/Developer/Trivolta/mobile/app/lobby/waiting.tsx
+ls /Users/mizzy/Developer/Trivolta/mobile/app/lobby/game.tsx
+
+# 3. Confirm testIDs present in waiting.tsx
+grep -c "testID" /Users/mizzy/Developer/Trivolta/mobile/app/lobby/waiting.tsx
+
+# 4. Confirm Realtime subscriptions present
+grep "postgres_changes" /Users/mizzy/Developer/Trivolta/mobile/app/lobby/waiting.tsx
+
+# 5. Confirm cleanup on unmount
+grep "removeChannel" /Users/mizzy/Developer/Trivolta/mobile/app/lobby/waiting.tsx
+
+# 6. Capture diff
+cd /Users/mizzy/Developer/Trivolta
+git diff HEAD > ~/trivolta_diff.txt
+echo "Lines changed: $(wc -l < ~/trivolta_diff.txt)"
+```
+
+Report results for each check. Do not commit — Mac Claude reviews the diff first.
