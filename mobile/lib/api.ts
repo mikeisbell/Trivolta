@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { QuestionResponse, UserStats } from './types'
+import type { QuestionResponse, UserStats, LeaderboardEntry, LeaderboardPeriod } from './types'
 
 const FUNCTIONS_URL = process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1'
 
@@ -83,6 +83,55 @@ export async function fetchUserStats(): Promise<UserStats | null> {
     bestStreak,
     accuracy,
   }
+}
+
+export async function fetchLeaderboard(
+  period: LeaderboardPeriod
+): Promise<LeaderboardEntry[]> {
+  let query = supabase
+    .from('scores')
+    .select('user_id, score, profiles(id, username, avatar_url)')
+
+  if (period === 'week') {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    query = query.gte('played_at', weekAgo)
+  } else if (period === 'month') {
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    query = query.gte('played_at', monthAgo)
+  }
+
+  const { data: scoreRows, error } = await query
+
+  if (error || !scoreRows) return []
+
+  const userMap: Record<string, { username: string; avatar_url: string | null; total: number; games: number }> = {}
+
+  for (const row of scoreRows) {
+    const profile = Array.isArray((row as any).profiles) ? (row as any).profiles[0] : (row as any).profiles
+    if (!profile) continue
+    if (!userMap[row.user_id]) {
+      userMap[row.user_id] = {
+        username: profile.username,
+        avatar_url: profile.avatar_url,
+        total: 0,
+        games: 0,
+      }
+    }
+    userMap[row.user_id].total += (row as any).score ?? 0
+    userMap[row.user_id].games += 1
+  }
+
+  return Object.entries(userMap)
+    .map(([id, data]) => ({
+      id,
+      username: data.username,
+      avatar_url: data.avatar_url,
+      total_score: data.total,
+      games_played: data.games,
+    }))
+    .sort((a, b) => b.total_score - a.total_score)
+    .slice(0, 50)
+    .map((entry, i) => ({ ...entry, rank: i + 1 }))
 }
 
 export async function saveScore(

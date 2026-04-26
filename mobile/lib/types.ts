@@ -60,6 +60,17 @@ export type UserStats = {
   accuracy: number
 }
 
+export type LeaderboardEntry = {
+  id: string
+  username: string
+  avatar_url: string | null
+  total_score: number
+  games_played: number
+  rank?: number
+}
+
+export type LeaderboardPeriod = 'alltime' | 'week' | 'month'
+
 export type AnswerState = 'unanswered' | 'correct' | 'wrong' | 'timeout'
 
 export type GameResult = {

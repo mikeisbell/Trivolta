@@ -1,0 +1,54 @@
+appId: com.mikeisbell.trivolta
+---
+# test_07: Leaderboard screen loads
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign in
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+# Navigate to Leaderboard via home avatar then tab
+- tapOn:
+    id: "home-avatar"
+
+# Navigate back to home
+- tapOn:
+    id: "profile-back"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 5000
+
+# Tap Ranks tab
+- tapOn:
+    id: "tab-ranks"
+    optional: true
+
+# Leaderboard screen should be visible
+- extendedWaitUntil:
+    visible:
+      id: "leaderboard-screen"
+    timeout: 10000
+
+# Tabs should be visible
+- assertVisible:
+    id: "leaderboard-tab-alltime"

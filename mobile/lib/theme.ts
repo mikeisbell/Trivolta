@@ -41,3 +41,11 @@ export const spacing = {
   xl: 20,
   xxl: 24,
 }
+
+export const avatarPalette = [
+  { bg: '#422006', text: '#EF9F27' },
+  { bg: '#1a2e1a', text: '#97C459' },
+  { bg: '#2d1a1a', text: '#F0997B' },
+  { bg: '#1e1b4b', text: '#a78bfa' },
+  { bg: '#1a2535', text: '#85B7EB' },
+]

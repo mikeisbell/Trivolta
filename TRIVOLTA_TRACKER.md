@@ -26,7 +26,7 @@
 ✅ ResultScreen — score, accuracy, XP bar, play again, home
 ✅ CustomCategoryScreen — any topic input, example prompts, trending categories
 ✅ ProfileScreen — real stats from Supabase, achievements, XP, level
-⬜ LeaderboardScreen — podium top 3, rank rows with movement arrows, global/weekly tabs
+✅ LeaderboardScreen — podium top 3, rank rows with movement arrows, global/weekly tabs
 ⬜ Lobby — CreateLobbyScreen
 ⬜ Lobby — JoinLobbyScreen
 ⬜ Lobby — LobbyWaitingScreen (real-time player list via Supabase Realtime)
@@ -141,7 +141,7 @@
 ✅ INSTRUCTIONS_QUESTION_SCREEN.md
 ✅ INSTRUCTIONS_CUSTOM_CATEGORY_SCREEN.md
 ✅ INSTRUCTIONS_PROFILE_SCREEN.md
-⬜ INSTRUCTIONS_LEADERBOARD_SCREEN.md
+✅ INSTRUCTIONS_LEADERBOARD_SCREEN.md
 ⬜ INSTRUCTIONS_LOBBY_CREATE.md
 ⬜ INSTRUCTIONS_LOBBY_JOIN.md
 ⬜ INSTRUCTIONS_LOBBY_WAITING.md

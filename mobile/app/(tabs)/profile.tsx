@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, ScrollView, Alert, ActivityIndicator
 } from 'react-native'
+import { useRouter } from 'expo-router'
 import { useAuth } from '../../lib/auth'
 import { fetchUserStats } from '../../lib/api'
 import { colors, radius, spacing } from '../../lib/theme'
@@ -97,6 +98,7 @@ function getAchievements(stats: UserStats): Achievement[] {
 }
 
 export default function ProfileScreen() {
+  const router = useRouter()
   const { user, signOut } = useAuth()
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -138,6 +140,13 @@ export default function ProfileScreen() {
 
         {/* Top bar */}
         <View style={styles.topBar}>
+          <TouchableOpacity
+            testID="profile-back"
+            onPress={() => router.navigate('/')}
+            style={styles.backBtn}
+          >
+            <Text style={styles.backText}>‹</Text>
+          </TouchableOpacity>
           <Text style={styles.screenTitle}>Profile</Text>
           <TouchableOpacity
             testID="profile-signout-button"
@@ -257,10 +266,20 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.md,
   },
+  backBtn: {
+    paddingRight: spacing.sm,
+  },
+  backText: {
+    fontSize: 28,
+    color: colors.purpleLight,
+    lineHeight: 28,
+  },
   screenTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: colors.textPrimary,
+    flex: 1,
+    textAlign: 'center',
   },
   signOutBtn: {
     backgroundColor: colors.dangerDim,

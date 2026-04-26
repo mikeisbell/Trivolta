@@ -1,3 +1,125 @@
+# INSTRUCTIONS_LEADERBOARD_SCREEN.md — Trivolta Leaderboard screen
+
+## Task
+Build the LeaderboardScreen with real data from Supabase. Shows a podium for the top 3
+players, rank rows for 4-10, the current user's position highlighted, and All time /
+Last week / Last month tabs. Matches the v2 premium dark design with podium treatment.
+
+## Verifiable objective
+When complete:
+- `npx tsc --noEmit` exits with 0 errors
+- LeaderboardScreen loads with real data from the Supabase leaderboard view
+- Top 3 players shown in podium layout (2nd left, 1st center elevated, 3rd right)
+- Players 4-10 shown as rank rows below the podium
+- Current user's row highlighted in purple
+- All time / Last week / Last month tabs switch the data period
+- Loading state shown while fetching
+- testID="leaderboard-screen" on root View
+- All 6 Maestro tests still pass
+- `git diff HEAD > ~/trivolta_diff.txt` captures all changes
+
+## Constraints
+- Read CLAUDE.md before writing a single file
+- All colors from lib/theme.ts — no inline hex strings
+- Real data from Supabase leaderboard view — no hardcoded players
+- If fewer than 3 players exist, podium renders gracefully with empty slots
+- Current user identification uses the auth session user ID
+- Rank movement arrows (▲▼) are visual only for v1 — no historical data needed
+- Do not add Friends tab — v1 has All time, Last week, Last month only
+- Loading state must be shown while fetching
+
+---
+
+## Step 1 — Add leaderboard types to types.ts
+
+Add to `mobile/lib/types.ts`:
+
+```typescript
+export type LeaderboardEntry = {
+  id: string
+  username: string
+  avatar_url: string | null
+  total_score: number
+  games_played: number
+  rank?: number
+}
+
+export type LeaderboardPeriod = 'alltime' | 'week' | 'month'
+```
+
+---
+
+## Step 2 — Add leaderboard fetching to api.ts
+
+Add to `mobile/lib/api.ts`:
+
+```typescript
+export async function fetchLeaderboard(
+  period: LeaderboardPeriod
+): Promise<LeaderboardEntry[]> {
+  let query = supabase
+    .from('scores')
+    .select('user_id, profiles(id, username, avatar_url)')
+
+  // Apply time filter
+  if (period === 'week') {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    query = query.gte('played_at', weekAgo)
+  } else if (period === 'month') {
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    query = query.gte('played_at', monthAgo)
+  }
+
+  const { data: scoreRows, error } = await query
+
+  if (error || !scoreRows) return []
+
+  // Aggregate scores per user
+  const userMap: Record<string, { username: string; avatar_url: string | null; total: number; games: number }> = {}
+
+  for (const row of scoreRows) {
+    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles
+    if (!profile) continue
+    if (!userMap[row.user_id]) {
+      userMap[row.user_id] = {
+        username: profile.username,
+        avatar_url: profile.avatar_url,
+        total: 0,
+        games: 0,
+      }
+    }
+    userMap[row.user_id].total += (row as any).score ?? 0
+    userMap[row.user_id].games += 1
+  }
+
+  // Sort and add rank
+  const entries = Object.entries(userMap)
+    .map(([id, data]) => ({
+      id,
+      username: data.username,
+      avatar_url: data.avatar_url,
+      total_score: data.total,
+      games_played: data.games,
+    }))
+    .sort((a, b) => b.total_score - a.total_score)
+    .slice(0, 50)
+    .map((entry, i) => ({ ...entry, rank: i + 1 }))
+
+  return entries
+}
+```
+
+Note: The existing leaderboard view in Supabase only covers the last 30 days. For
+the "All time" tab we query scores directly. For period filters we apply date ranges.
+The leaderboard view can be used for "month" as a shortcut if preferred.
+
+---
+
+## Step 3 — Build the LeaderboardScreen
+
+Replace the contents of `mobile/app/(tabs)/leaderboard.tsx`:
+
+```typescript
 import { useEffect, useState, useCallback } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -5,7 +127,7 @@ import {
 } from 'react-native'
 import { useAuth } from '../../lib/auth'
 import { fetchLeaderboard } from '../../lib/api'
-import { colors, radius, spacing, avatarPalette } from '../../lib/theme'
+import { colors, radius, spacing } from '../../lib/theme'
 import type { LeaderboardEntry, LeaderboardPeriod } from '../../lib/types'
 
 const TABS: { label: string; value: LeaderboardPeriod }[] = [
@@ -14,8 +136,16 @@ const TABS: { label: string; value: LeaderboardPeriod }[] = [
   { label: 'Last month', value: 'month' },
 ]
 
+const AVATAR_COLORS = [
+  { bg: '#422006', text: '#EF9F27' },
+  { bg: '#1a2e1a', text: '#97C459' },
+  { bg: '#2d1a1a', text: '#F0997B' },
+  { bg: '#1e1b4b', text: '#a78bfa' },
+  { bg: '#1a2535', text: '#85B7EB' },
+]
+
 function getAvatarColor(index: number) {
-  return avatarPalette[index % avatarPalette.length]
+  return AVATAR_COLORS[index % AVATAR_COLORS.length]
 }
 
 function initials(username: string): string {
@@ -79,7 +209,7 @@ export default function LeaderboardScreen() {
   useEffect(() => { load() }, [load])
 
   const userEntry = entries.find(e => e.id === user?.id)
-  const top3 = [entries[1] ?? null, entries[0] ?? null, entries[2] ?? null]
+  const top3 = [entries[1] ?? null, entries[0] ?? null, entries[2] ?? null] // 2nd, 1st, 3rd
   const rest = entries.slice(3, 10)
 
   return (
@@ -402,3 +532,104 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 })
+```
+
+---
+
+## Step 4 — Add Maestro test for Leaderboard screen
+
+Create `mobile/maestro/test_07_leaderboard_screen.yaml`:
+
+```yaml
+appId: com.mikeisbell.trivolta
+---
+# test_07: Leaderboard screen loads
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign in
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+# Navigate to Leaderboard via home avatar then tab
+- tapOn:
+    id: "home-avatar"
+
+# Navigate back to home
+- tapOn:
+    id: "profile-back"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 5000
+
+# Tap Ranks tab
+- tapOn:
+    id: "tab-ranks"
+    optional: true
+
+# Leaderboard screen should be visible
+- extendedWaitUntil:
+    visible:
+      id: "leaderboard-screen"
+    timeout: 10000
+
+# Tabs should be visible
+- assertVisible:
+    id: "leaderboard-tab-alltime"
+```
+
+Add to `mobile/package.json` scripts:
+```json
+"test:e2e:07": "maestro test maestro/test_07_leaderboard_screen.yaml"
+```
+
+---
+
+## Verification
+
+```bash
+# 1. TypeScript
+cd /Users/mizzy/Developer/Trivolta/mobile
+npx tsc --noEmit
+
+# 2. Launch and confirm visually
+# - Ranks tab shows leaderboard
+# - If no data: empty state with trophy icon
+# - If data: podium + rank rows visible
+# - Tabs switch between periods
+
+# 3. Run all 7 Maestro tests
+export PATH="$HOME/.maestro/bin:$PATH"
+maestro test maestro/
+
+# 4. Diff
+cd /Users/mizzy/Developer/Trivolta
+git diff HEAD > ~/trivolta_diff.txt
+echo "Lines changed: $(wc -l < ~/trivolta_diff.txt)"
+```
+
+Report:
+- TypeScript: PASS/FAIL
+- Visual: describe what leaderboard shows (empty state or player data)
+- test_01 through test_07: PASS/FAIL each
+
+Do not report success until TypeScript passes and all 7 tests pass.

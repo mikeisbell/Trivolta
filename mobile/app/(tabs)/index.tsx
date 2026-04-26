@@ -61,9 +61,13 @@ export default function HomeScreen() {
                 <View style={[styles.heroPill, styles.heroPillGold]}>
                   <Text style={styles.heroPillGoldText}>+500 XP</Text>
                 </View>
-                <View style={styles.heroPill}>
+                <TouchableOpacity
+                  testID="tab-ranks"
+                  style={styles.heroPill}
+                  onPress={() => router.navigate('/(tabs)/leaderboard')}
+                >
                   <Text style={styles.heroPillText}>Rank pts</Text>
-                </View>
+                </TouchableOpacity>
               </View>
               <View style={styles.heroPlayBtn}>
                 <Text style={styles.heroPlayText}>Play →</Text>
