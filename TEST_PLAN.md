@@ -216,3 +216,138 @@ chmod +x run_tests.sh
 ```
 
 > **Note on `mobile/.env.local` Supabase URL:** Use your Mac's LAN IP (e.g. `http://192.168.1.x:54321`), not `http://127.0.0.1:54321`. The iOS simulator cannot reach `127.0.0.1` on the Mac. Get your LAN IP with `ipconfig getifaddr en0`.
+
+---
+
+## Backlog — Tests Not Yet Implemented
+
+Coverage analysis based on full source review (April 2026). Tests are grouped by priority tier. Each entry notes the testID(s) exercised and the specific behavior being verified.
+
+---
+
+### Tier 1 — High value, low complexity
+
+**test_16 — Auth form validation**
+- Tap `auth-submit-button` with blank email and password → Alert "Email and password are required" appears
+- Tap `auth-mode-toggle` → mode switches to sign up, `auth-username-input` becomes visible, button label changes to "Create account"
+- Tap `auth-mode-toggle` again → returns to sign in mode, `auth-username-input` disappears
+- Sign in with wrong password → Alert with Supabase error message appears
+- Sign up with blank username (mode = signup, email + password filled, username empty) → Alert "Username is required"
+
+**test_17 — Solo results screen assertions**
+- Complete a 10-question game
+- Assert `results-screen` visible
+- Assert score value visible (non-zero number)
+- Assert accuracy percentage visible
+- Assert grade label visible ("Outstanding!", "Excellent!", "Good effort", or "Keep practicing")
+- Tap `results-home` → `home-screen` visible
+
+**test_18 — QuestionScreen error state and retry**
+- Start a quiz, kill Edge Functions mid-test (stop `supabase functions serve`)
+- `question-screen-error` testID becomes visible
+- "Try again" retry button visible
+- Restart Edge Functions, tap retry
+- `question-screen` loads successfully
+- Note: requires Maestro `runScript` to stop/start the Edge Function process, or this test is manual-only
+
+**test_19 — Join lobby with invalid room code**
+- Navigate to JoinLobbyScreen
+- Enter `XXXX` (non-existent code) across `join-lobby-code-box-0` through `join-lobby-code-box-3`
+- Tap `join-lobby-submit`
+- `join-lobby-error` testID visible with error message
+
+---
+
+### Tier 2 — Medium value, medium complexity
+
+**test_20 — HomeScreen category taps**
+- Tap `home-category-science` → `question-screen` loads with "Science" category
+- Back to home (via `question-back`)
+- Tap `home-category-pop_culture` → `question-screen` loads with "Pop culture"
+- Back to home
+- Tap `home-category-history` → `question-screen` loads with "History"
+
+**test_21 — Custom category freeform input and trending tap**
+- Navigate to CustomCategoryScreen via `home-category-custom`
+- Assert `custom-category-submit` is disabled (input empty)
+- Type directly into `custom-category-input` (e.g. "Ancient Rome")
+- Assert `custom-category-submit` enabled
+- Tap `custom-category-back` → returns to HomeScreen (navigation only, no quiz started)
+- Navigate back to CustomCategoryScreen
+- Tap `custom-category-trending-formula1` → `question-screen` loads
+
+**test_22 — Create lobby with custom topic**
+- Navigate to CreateLobbyScreen
+- Assert `create-lobby-submit` disabled (no category selected)
+- Tap `create-lobby-category-custom` → `create-lobby-custom-input` becomes visible
+- Assert `create-lobby-submit` still disabled (custom input empty)
+- Type a topic into `create-lobby-custom-input`
+- Assert `create-lobby-submit` enabled
+- Tap `create-lobby-submit` → `lobby-waiting-code` visible
+
+**test_23 — Leaderboard period switching**
+- Navigate to LeaderboardScreen
+- Assert `leaderboard-tab-alltime` active (default)
+- Tap `leaderboard-tab-week` → screen reloads (loading indicator may appear), content updates
+- Tap `leaderboard-tab-month` → screen reloads, content updates
+- Tap `leaderboard-tab-alltime` → returns to all-time view
+
+**test_24 — Back navigation mid-game and results home**
+- Start a quiz, answer Q1, tap `question-back` → `home-screen` visible (game abandoned, no crash)
+- Start a new quiz, complete all 10 questions
+- On `results-screen`, tap `results-home` → `home-screen` visible
+
+**test_25 — Join lobby with bad code (full error flow)**
+- Navigate to JoinLobbyScreen
+- Enter 3 characters only — assert `join-lobby-submit` disabled (not all 4 boxes filled)
+- Enter 4th character — assert `join-lobby-submit` enabled
+- Clear and enter `XXXX` — tap submit — assert `join-lobby-error` visible
+- Backspace behavior: tap box-1, delete → focus moves to box-0 automatically
+
+**test_26 — Lobby results navigation**
+- Complete a full lobby game (deep-link setup same as test_14)
+- On `lobby-results-my-score` screen, assert `lobby-results-player-1` visible (seeded host is rank 1)
+- Tap `lobby-results-home` → `home-screen` visible
+- Re-run and tap `lobby-results-play-again` → `lobby/create` screen visible
+
+---
+
+### Tier 3 — Hard or low ROI (implement after Tier 1 + 2)
+
+**test_27 — Lobby game timer expiry**
+- Seed a lobby (same as test_14 setup)
+- Host navigates to game screen
+- Do NOT tap any answer — wait 25 seconds for the 20-second timer to expire
+- "Time's up — no points awarded" state visible
+- `lobby-game-next` visible for host
+- Advance to Q2
+
+**test_28 — Profile achievement unlock assertions**
+- After playing enough games to unlock "First game" achievement (`gamesPlayed >= 1`)
+- Navigate to ProfileScreen
+- Assert `achievement-first_game` visible and not in locked/dimmed state
+- Assert `achievement-games_10` visible but locked (dimmed, `opacity: 0.35`)
+- Requires controlled Supabase state — seed `scores` table with 1 game for test user
+
+**test_29 — Leaderboard current user highlighted**
+- Seed enough scores for test user to appear in top 10
+- Navigate to LeaderboardScreen
+- Assert a row with "(you)" text is visible and has the purple highlight style
+- Complex setup — requires seeding leaderboard position
+
+**test_30 — Full lobby: joining a full lobby (8/8)**
+- Seed a lobby with 8 players already in `lobby_players`
+- Sign in and attempt to join that lobby via room code
+- `join-lobby-error` appears with "Lobby is full" or equivalent message from Edge Function
+
+---
+
+### Coverage gaps that are not Maestro-testable
+
+The following gaps were identified but cannot be reliably tested with Maestro in the current setup:
+
+- **Guest "Waiting for host…" state in `lobby/game.tsx`** — requires two simultaneous devices or a second Maestro instance. The `waitingBox` / "Waiting for host…" text after a guest answers is never exercised.
+- **Realtime player list update in LobbyWaitingScreen** — requires a second user joining while the first is watching. Seeding `lobby_players` directly bypasses the Realtime subscription that updates the list.
+- **Timer color transitions** (purple → gold → red) — purely visual CSS/style changes with no testID hook.
+- **Score calculation accuracy** — `calcScore(timeLeft, streak)` produces different values depending on exact timing. Cannot assert a specific score value without controlling the clock.
+- **`question-screen-loading` ActivityIndicator** — appears and disappears too fast for reliable Maestro assertion given AI generation latency variability.

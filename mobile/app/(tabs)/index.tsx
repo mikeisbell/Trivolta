@@ -1,8 +1,11 @@
+import { useState, useEffect } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useAuth } from '../../lib/auth'
+import { fetchDailyChallenge } from '../../lib/api'
+import type { DailyChallenge } from '../../lib/types'
 import { colors, radius, spacing } from '../../lib/theme'
 
 const CATEGORIES = [
@@ -12,10 +15,24 @@ const CATEGORIES = [
   { id: 'custom', label: 'Any topic', emoji: '✨', count: 'Ask anything', badge: 'AI', badgeType: 'ai' },
 ] as const
 
+function timeUntilMidnightUTC(): string {
+  const now = new Date()
+  const midnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
+  const diff = midnight.getTime() - now.getTime()
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  return `${hours}h ${minutes}m`
+}
+
 export default function HomeScreen() {
   const { user } = useAuth()
   const router = useRouter()
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? 'ME'
+  const [dailyChallenge, setDailyChallenge] = useState<DailyChallenge | null>(null)
+
+  useEffect(() => {
+    fetchDailyChallenge().then(setDailyChallenge)
+  }, [])
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -51,11 +68,15 @@ export default function HomeScreen() {
           <TouchableOpacity
             testID="home-daily-challenge"
             style={styles.heroCard}
-            activeOpacity={0.85}
+            activeOpacity={dailyChallenge?.completed ? 1 : 0.85}
+            onPress={() => {
+              if (dailyChallenge?.completed || !dailyChallenge) return
+              router.push({ pathname: '/question', params: { category: dailyChallenge.category, challengeId: dailyChallenge.id } })
+            }}
           >
             <Text style={styles.heroLabel}>DAILY CHALLENGE</Text>
-            <Text style={styles.heroTitle}>Mixed trivia</Text>
-            <Text style={styles.heroSub}>10 questions · Ends in 14h 22m</Text>
+            <Text style={styles.heroTitle}>{dailyChallenge?.category ?? 'Mixed trivia'}</Text>
+            <Text style={styles.heroSub}>{'10 questions · Ends in ' + timeUntilMidnightUTC()}</Text>
             <View style={styles.heroRow}>
               <View style={styles.heroPills}>
                 <View style={[styles.heroPill, styles.heroPillGold]}>
@@ -70,7 +91,9 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </View>
               <View style={styles.heroPlayBtn}>
-                <Text style={styles.heroPlayText}>Play →</Text>
+                <Text style={styles.heroPlayText}>
+                  {dailyChallenge?.completed ? 'Completed ✓' : 'Play →'}
+                </Text>
               </View>
             </View>
           </TouchableOpacity>

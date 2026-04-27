@@ -4,7 +4,7 @@ import {
   SafeAreaView, ActivityIndicator, Alert
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { generateSoloQuestion, saveScore } from '../lib/api'
+import { generateSoloQuestion, saveScore, saveDailyChallengeCompletion } from '../lib/api'
 import { getHistory, addToHistory } from '../lib/gameHistory'
 import { colors, radius, spacing } from '../lib/theme'
 import type { QuestionResponse, AnswerState, GameResult } from '../lib/types'
@@ -20,7 +20,7 @@ function calcScore(timeLeft: number, streak: number): number {
 }
 
 export default function QuestionScreen() {
-  const { category } = useLocalSearchParams<{ category: string }>()
+  const { category, challengeId } = useLocalSearchParams<{ category: string; challengeId?: string }>()
   const router = useRouter()
 
   const [question, setQuestion] = useState<QuestionResponse | null>(null)
@@ -122,14 +122,23 @@ export default function QuestionScreen() {
         totalQuestions: TOTAL_QUESTIONS,
         bestStreak,
       }
-      // Save to Supabase (non-blocking)
       saveScore(
         result.category,
         result.score,
         result.correctCount,
         result.totalQuestions,
         result.bestStreak
-      ).catch(() => {}) // silent fail — don't block navigation
+      ).catch(() => {})
+
+      if (challengeId) {
+        saveDailyChallengeCompletion(
+          challengeId,
+          result.score,
+          result.correctCount,
+          result.totalQuestions,
+          result.bestStreak
+        ).catch(() => {})
+      }
 
       router.replace({
         pathname: '/results',
@@ -139,13 +148,14 @@ export default function QuestionScreen() {
           correctCount: String(result.correctCount),
           totalQuestions: String(result.totalQuestions),
           bestStreak: String(result.bestStreak),
+          isChallenge: challengeId ? '1' : '0',
         },
       })
     } else {
       setQuestionNum(prev => prev + 1)
       fetchQuestion()
     }
-  }, [questionNum, score, correctCount, bestStreak, answerState, category, router, fetchQuestion])
+  }, [questionNum, score, correctCount, bestStreak, answerState, category, challengeId, router, fetchQuestion])
 
   const timerPercent = (timeLeft / TIMER_SECONDS) * 100
   const timerColor = timeLeft > 10 ? colors.purple : timeLeft > 5 ? colors.gold : colors.danger

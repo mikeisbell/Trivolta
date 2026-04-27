@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { QuestionResponse, UserStats, LeaderboardEntry, LeaderboardPeriod } from './types'
+import type { QuestionResponse, UserStats, LeaderboardEntry, LeaderboardPeriod, DailyChallenge } from './types'
 
 const FUNCTIONS_URL = process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1'
 
@@ -284,6 +284,39 @@ export type LobbyPlayerResult = {
   accuracy: number
   rank: number
   isCurrentUser: boolean
+}
+
+export async function fetchDailyChallenge(): Promise<DailyChallenge | null> {
+  try {
+    const res = await callFunction('daily-challenge', {})
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}
+
+export async function saveDailyChallengeCompletion(
+  challengeId: string,
+  score: number,
+  correctCount: number,
+  totalQuestions: number,
+  bestStreak: number
+): Promise<void> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    await supabase.from('daily_challenge_completions').insert({
+      challenge_id: challengeId,
+      user_id: session.user.id,
+      score,
+      correct_count: correctCount,
+      total_questions: totalQuestions,
+      best_streak: bestStreak,
+    })
+  } catch {
+    // silently ignore all errors including duplicate key (23505)
+  }
 }
 
 export async function fetchLobbyResults(lobbyId: string): Promise<LobbyPlayerResult[]> {

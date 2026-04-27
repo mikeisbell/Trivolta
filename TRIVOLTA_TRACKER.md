@@ -32,7 +32,7 @@
 ✅ Lobby — LobbyWaitingScreen (real-time player list via Supabase Realtime)
 ✅ Lobby — LobbyGameScreen (synchronous play, server-timestamp timer)
 ✅ Lobby — LobbyResultScreen (final scores for all players)
-⬜ Daily Challenge — real implementation (not just a card)
+✅ Daily Challenge — real implementation (not just a card)
 
 ### Core Features
 ✅ AI question generation (solo) — claude-sonnet-4-6
@@ -46,7 +46,7 @@
 ✅ Server-timestamp timer for lobby games
 ✅ Room code join flow
 ✅ Lobby question generation (all 10 before game start)
-⬜ Daily challenge logic (server-side, resets at midnight)
+✅ Daily challenge logic (server-side, resets at midnight)
 ⬜ AdMob rewarded ads integration
 ⬜ Trending categories from real play data (currently hardcoded)
 
@@ -148,7 +148,7 @@
 ✅ INSTRUCTIONS_LOBBY_RESULTS.md
 ✅ INSTRUCTIONS_LOBBY_TESTS.md
 ✅ INSTRUCTIONS_SOLO_GAME_TESTS.md
-⬜ INSTRUCTIONS_DAILY_CHALLENGE.md
+✅ INSTRUCTIONS_DAILY_CHALLENGE.md
 ⬜ INSTRUCTIONS_ADMOB.md
 ⬜ INSTRUCTIONS_EAS_BUILD.md
 ⬜ INSTRUCTIONS_PRODUCTION_SUPABASE.md

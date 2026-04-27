@@ -11,13 +11,14 @@ function gradeLabel(pct: number): string {
 
 export default function ResultScreen() {
   const router = useRouter()
-  const { category, score, correctCount, totalQuestions, bestStreak } =
+  const { category, score, correctCount, totalQuestions, bestStreak, isChallenge } =
     useLocalSearchParams<{
       category: string
       score: string
       correctCount: string
       totalQuestions: string
       bestStreak: string
+      isChallenge?: string
     }>()
 
   const correct = parseInt(correctCount ?? '0')
@@ -35,7 +36,7 @@ export default function ResultScreen() {
           </Text>
           <Text style={styles.grade}>{gradeLabel(pct)}</Text>
           <Text style={styles.detail}>
-            {category} · {correct}/{total} correct · {pct}% accuracy
+            {isChallenge === '1' ? '🏅 Daily Challenge · ' : ''}{category} · {correct}/{total} correct · {pct}% accuracy
           </Text>
         </View>
 

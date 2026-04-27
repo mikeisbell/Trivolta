@@ -71,6 +71,14 @@ export type LeaderboardEntry = {
 
 export type LeaderboardPeriod = 'alltime' | 'week' | 'month'
 
+export type DailyChallenge = {
+  id: string
+  date: string
+  category: string
+  completed: boolean
+  completionScore: number | null
+}
+
 export type AnswerState = 'unanswered' | 'correct' | 'wrong' | 'timeout'
 
 export type GameResult = {
