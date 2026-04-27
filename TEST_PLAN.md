@@ -78,11 +78,13 @@ maestro --version
 
 The test suite is self-sufficient. **test_02 deletes and recreates the test user automatically** via `scripts/delete_test_user.js` using the Supabase admin API. Tests 03–07 depend on the user existing after test_02 runs. Always run the full suite in order — never run tests 03+ in isolation unless test_02 has already run in the same Supabase session.
 
+`testuser_maestro_03` is created on-demand by `scripts/ensure_test_user_03.js` at the start of tests 13–15. No manual setup required.
+
 ---
 
 ## Running the Tests
 
-Use `run_tests.sh` — it sources `.env.maestro` and passes vars to Maestro correctly.
+Use `run_tests.sh` — it sources `.env.maestro` and passes vars to Maestro correctly. It also enforces `--shards=1` to prevent parallel execution (see Known Quirks).
 
 ### Full suite (always run before committing)
 
@@ -137,7 +139,7 @@ Run terminals 1 and 2 first. Wait for the app to be visible at the auth screen b
 | 10 | `test_10_timer_expiry.yaml` | Unanswered question times out gracefully | ✅ Passing |
 | 11 | `test_11_streak_tracking.yaml` | Streak increments on consecutive correct answers | ✅ Passing |
 
-**Written — lobby flows:**
+**Lobby flow tests:**
 
 | # | File | What it tests | Status |
 |---|------|--------------|--------|
@@ -150,10 +152,10 @@ Run terminals 1 and 2 first. Wait for the app to be visible at the auth screen b
 
 ## Test User Reference
 
-| Email | Password | Username |
-|-------|----------|----------|
-| `testuser_maestro_02@trivolta-test.com` | `TestPassword123!` | `maestro02` |
-| `testuser_maestro_03@trivolta-test.com` | `TestPassword123!` | `maestro03` |
+| Email | Password | Username | Created by |
+|-------|----------|----------|------------|
+| `testuser_maestro_02@trivolta-test.com` | `TestPassword123!` | `maestro02` | test_02 (auto) |
+| `testuser_maestro_03@trivolta-test.com` | `TestPassword123!` | `maestro03` | test_13–15 (auto via ensure_test_user_03.js) |
 
 ---
 
@@ -174,6 +176,10 @@ Run terminals 1 and 2 first. Wait for the app to be visible at the auth screen b
 **`assertVisible` with inline `timeout` not supported in Maestro 2.4.0.** Use `extendedWaitUntil` instead.
 
 **iOS "Save Password?" system dialog** may appear after sign-in. All tests handle this with `tapOn: "Not Now" optional: true`.
+
+**iOS "Open" deep link confirmation dialog** appears in test_14 when `openLink` is called. test_14 handles this with `tapOn: text: "Open" optional: true` immediately after the `openLink` command.
+
+**Maestro runs tests in parallel by default — this breaks auth-dependent tests.** Tests 03–15 depend on the user created in test_02. Parallel runs cause non-deterministic failures. `run_tests.sh` enforces `--shards=1`. Never call `maestro test` directly on the directory.
 
 **Maestro crashes with a GraalVM JVM error after test_02** when running the full suite. This is a Maestro CLI bug. Tests still pass before the crash — check `~/trivolta_test_output.txt` for results.
 

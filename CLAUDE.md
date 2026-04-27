@@ -38,6 +38,38 @@ No interstitials, no banners. Do not add non-rewarded ad placements without an e
 
 ---
 
+## JSONB Arrays Must Not Be Double-Encoded
+
+The `answers` column in `lobby_questions` is JSONB. Insert actual arrays — not `JSON.stringify()`'d strings. Inserting a stringified value stores a string literal in the JSONB column, which silently breaks all answer rendering. Always pass the raw array:
+
+```js
+// Correct
+answers: ['Mars', 'Venus', 'Jupiter', 'Saturn']
+
+// Wrong — stores a string, not an array
+answers: JSON.stringify(['Mars', 'Venus', 'Jupiter', 'Saturn'])
+```
+
+---
+
+## game_sessions RLS Requires INSERT Policy
+
+The `game_sessions` table requires both SELECT and INSERT RLS policies. The host calls `createGameSession()` when loading Q0 — without an INSERT policy, this fails silently (no error thrown, no row written, timer never starts for guests). Always add INSERT when adding SELECT to `game_sessions`.
+
+---
+
+## Maestro Must Run Sequential (--shards=1)
+
+Maestro runs directory-level test suites in parallel by default. Tests 03–15 depend on the test user created in test_02. Parallel execution causes auth-dependent tests to fail non-deterministically. Always run with `--shards=1`:
+
+```bash
+maestro test --shards=1 .
+```
+
+The `run_tests.sh` script handles this. Never call `maestro test` directly on the directory.
+
+---
+
 ## Verification Commands
 
 **Mobile (compile):** `cd mobile && npx tsc --noEmit`
