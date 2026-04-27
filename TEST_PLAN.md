@@ -128,18 +128,23 @@ Run terminals 1 and 2 first. Wait for the app to be visible at the auth screen b
 | 06 | `test_06_profile_screen.yaml` | Profile screen loads with real data | ✅ Passing | Depends on test_02 |
 | 07 | `test_07_leaderboard_screen.yaml` | Leaderboard screen loads | ✅ Passing | Depends on test_02 |
 
-**Planned (not yet written):**
+**Solo game tests:**
 
-| # | File | What it tests |
-|---|------|--------------|
-| 08 | `test_08_solo_game_loop.yaml` | Start quiz, answer 10 questions, see results |
-| 09 | `test_09_play_again.yaml` | Play again from ResultsScreen |
-| 10 | `test_10_timer_expiry.yaml` | Unanswered question times out gracefully |
-| 11 | `test_11_streak_tracking.yaml` | Streak increments on consecutive correct answers |
-| 12 | `test_12_create_lobby.yaml` | Create lobby, see waiting screen with room code |
-| 13 | `test_13_join_lobby.yaml` | Join lobby via room code |
-| 14 | `test_14_lobby_game_flow.yaml` | Full lobby game — host + guest, all 10 questions |
-| 15 | `test_15_lobby_host_cancel.yaml` | Host leaves waiting lobby |
+| # | File | What it tests | Status |
+|---|------|--------------|--------|
+| 08 | `test_08_solo_game_loop.yaml` | Start quiz, answer 10 questions, see results | ✅ Passing |
+| 09 | `test_09_play_again.yaml` | Play again from ResultsScreen | ✅ Passing |
+| 10 | `test_10_timer_expiry.yaml` | Unanswered question times out gracefully | ✅ Passing |
+| 11 | `test_11_streak_tracking.yaml` | Streak increments on consecutive correct answers | ✅ Passing |
+
+**Written — lobby flows:**
+
+| # | File | What it tests | Status |
+|---|------|--------------|--------|
+| 12 | `test_12_create_lobby.yaml` | Host creates lobby via UI — sees room code and 1/8 | ✅ Passing |
+| 13 | `test_13_join_lobby.yaml` | Guest joins seeded lobby via room code — sees 2/8 | ✅ Passing |
+| 14 | `test_14_lobby_game.yaml` | Host deep-links to seeded lobby, starts game, answers all 10, reaches results | ✅ Passing |
+| 15 | `test_15_leave_lobby.yaml` | Guest joins seeded lobby, taps Leave, confirms Alert, lands on home | ✅ Passing |
 
 ---
 
@@ -148,6 +153,7 @@ Run terminals 1 and 2 first. Wait for the app to be visible at the auth screen b
 | Email | Password | Username |
 |-------|----------|----------|
 | `testuser_maestro_02@trivolta-test.com` | `TestPassword123!` | `maestro02` |
+| `testuser_maestro_03@trivolta-test.com` | `TestPassword123!` | `maestro03` |
 
 ---
 

@@ -122,6 +122,18 @@ export default function HomeScreen() {
             </View>
           </View>
 
+          {/* Play with friends */}
+          <TouchableOpacity
+            testID="home-play-lobby"
+            accessible={true}
+            accessibilityLabel="Play with friends"
+            style={styles.playLobbyBtn}
+            activeOpacity={0.85}
+            onPress={() => router.push('/(tabs)/play')}
+          >
+            <Text style={styles.playLobbyText}>Play with friends</Text>
+          </TouchableOpacity>
+
           {/* Quick play */}
           <TouchableOpacity
             testID="home-quick-play"
@@ -312,6 +324,22 @@ const styles = StyleSheet.create({
   catName: { fontSize: 12, fontWeight: '700', color: colors.textPrimary },
   catNameAI: { color: colors.purplePale },
   catCount: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
+
+  playLobbyBtn: {
+    marginHorizontal: spacing.xxl,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  playLobbyText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
 
   quickPlay: {
     marginHorizontal: spacing.xxl,

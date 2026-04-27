@@ -19,6 +19,7 @@ if [ -n "$1" ]; then
 fi
 
 maestro test \
+  --shards=1 \
   --env SUPABASE_URL="$SUPABASE_URL" \
   --env SUPABASE_SERVICE_KEY="$SUPABASE_SERVICE_KEY" \
   "$TARGET" 2>&1 | tee ~/trivolta_test_output.txt

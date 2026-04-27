@@ -1,0 +1,86 @@
+appId: com.mikeisbell.trivolta
+env:
+  SUPABASE_URL: ${SUPABASE_URL}
+  SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+---
+# test_13: Guest joins seeded lobby via room code — verifies player count 2/8
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Ensure host user03 exists
+- runScript:
+    file: ./scripts/ensure_test_user_03.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+
+# Seed lobby with user03 as host only (room code JOIN)
+- runScript:
+    file: ./scripts/create_join_test_lobby.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      HOST_USER_ID: ${output.user03Id}
+      ROOM_CODE: "JOIN"
+
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+- tapOn:
+    id: "home-play-lobby"
+- extendedWaitUntil:
+    visible:
+      id: "play-screen"
+    timeout: 10000
+
+- tapOn:
+    id: "play-join-lobby"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "join-lobby-code-box-0"
+- inputText: "J"
+- tapOn:
+    id: "join-lobby-code-box-1"
+- inputText: "O"
+- tapOn:
+    id: "join-lobby-code-box-2"
+- inputText: "I"
+- tapOn:
+    id: "join-lobby-code-box-3"
+- inputText: "N"
+
+- tapOn:
+    id: "join-lobby-submit"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-waiting-code"
+    timeout: 15000
+- assertVisible:
+    text: "2 / 8"
+
+# Cleanup
+- runScript:
+    file: ./scripts/cleanup_test_lobby.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      LOBBY_ID: ${output.lobbyId}

@@ -28,7 +28,7 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="play"
-        options={{ title: 'Play', href: null } as any}
+        options={{ title: 'Play' }}
       />
       <Tabs.Screen
         name="leaderboard"

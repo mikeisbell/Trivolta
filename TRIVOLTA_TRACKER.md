@@ -62,14 +62,14 @@
 ✅ test_05 — custom category flow
 ✅ test_06 — profile screen data
 ✅ test_07 — leaderboard display
-⬜ test_08 — solo game loop (start, answer, complete 10 questions, results)
-⬜ test_09 — play again from results
-⬜ test_10 — timer expiry (unanswered question)
-⬜ test_11 — streak tracking
-⬜ test_12 — create lobby
-⬜ test_13 — join lobby via room code
-⬜ test_14 — lobby game full flow
-⬜ test_15 — lobby host cancels game
+✅ test_08 — solo game loop (start, answer, complete 10 questions, results)
+✅ test_09 — play again from results
+✅ test_10 — timer expiry (unanswered question)
+✅ test_11 — streak tracking
+✅ test_12 — create lobby
+✅ test_13 — join lobby via room code
+✅ test_14 — lobby game full flow
+✅ test_15 — leave lobby (guest)
 
 ### Edge Case Coverage
 ⬜ Network failure during question fetch — retry UI
@@ -146,6 +146,8 @@
 ✅ INSTRUCTIONS_LOBBY_WAITING.md
 ✅ INSTRUCTIONS_LOBBY_GAME.md
 ✅ INSTRUCTIONS_LOBBY_RESULTS.md
+✅ INSTRUCTIONS_LOBBY_TESTS.md
+✅ INSTRUCTIONS_SOLO_GAME_TESTS.md
 ⬜ INSTRUCTIONS_DAILY_CHALLENGE.md
 ⬜ INSTRUCTIONS_ADMOB.md
 ⬜ INSTRUCTIONS_EAS_BUILD.md

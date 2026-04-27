@@ -1,0 +1,56 @@
+appId: com.mikeisbell.trivolta
+---
+# test_12: Host creates lobby via UI — verifies room code visible and player count 1/8
+
+- clearState
+- launchApp:
+    clearState: true
+
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+- tapOn:
+    id: "home-play-lobby"
+- extendedWaitUntil:
+    visible:
+      id: "play-screen"
+    timeout: 10000
+
+- tapOn:
+    id: "play-create-lobby"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "create-lobby-category-science"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "create-lobby-submit"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-waiting-code"
+    timeout: 15000
+- assertVisible:
+    id: "lobby-waiting-player-count"
+- assertVisible:
+    text: "1 / 8"
+
+# Start button is disabled with 1 player — do NOT tap it
+# Navigate back to avoid leaving a dangling lobby
+- back

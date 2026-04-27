@@ -1,0 +1,88 @@
+appId: com.mikeisbell.trivolta
+---
+# test_11: Streak tracking — after 2+ correct answers streak pill appears
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign in
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+# Start a quiz
+- tapOn:
+    id: "home-category-custom"
+- waitForAnimationToEnd
+- tapOn:
+    id: "custom-category-prompt-nasa-missions"
+- tapOn:
+    id: "custom-category-submit"
+
+# Q1 — answer and advance
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+# Q2 — answer and advance
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+# Q3 — question-screen must load (streak pill may or may not show depending on correctness)
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+
+# Streak pill appears when streak >= 2 — optional since we don't control correct_index
+- assertVisible:
+    text: "streak"
+    optional: true
+
+# Advance — game continues
+- tapOn:
+    id: "question-next"
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000

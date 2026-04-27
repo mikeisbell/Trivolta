@@ -1,0 +1,55 @@
+appId: com.mikeisbell.trivolta
+---
+# test_10: Timer expiry — unanswered question shows timeout state and allows advancing
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign in
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+# Start a quiz
+- tapOn:
+    id: "home-category-custom"
+- waitForAnimationToEnd
+- tapOn:
+    id: "custom-category-prompt-nasa-missions"
+- tapOn:
+    id: "custom-category-submit"
+
+# Wait for question — do NOT answer
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+
+# Wait up to 25 seconds for the 20-second timer to expire — question-next appears on timeout
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 25000
+
+# Advance to next question
+- tapOn:
+    id: "question-next"
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000

@@ -1,0 +1,174 @@
+appId: com.mikeisbell.trivolta
+---
+# test_08: Solo game loop — answer all 10 questions and reach results screen
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign in
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+# Start a quiz
+- tapOn:
+    id: "home-category-custom"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "custom-category-input"
+- tapOn:
+    id: "custom-category-prompt-nasa-missions"
+- tapOn:
+    id: "custom-category-submit"
+
+# Answer all 10 questions — always tap answer-0, then next
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+# Results screen must appear
+- extendedWaitUntil:
+    visible:
+      id: "results-screen"
+    timeout: 10000

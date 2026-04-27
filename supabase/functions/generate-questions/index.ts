@@ -24,6 +24,18 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
+    // Skip generation if questions are already seeded (e.g. in tests)
+    const { count } = await supabase
+      .from('lobby_questions')
+      .select('*', { count: 'exact', head: true })
+      .eq('lobby_id', lobby_id)
+    if ((count ?? 0) >= 10) {
+      return new Response(JSON.stringify({ success: true, count: count }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const questions = []
     for (let i = 0; i < 10; i++) {
       const prompt = `Generate trivia question ${i + 1} of 10 about "${category}" at ${difficulty} difficulty.
