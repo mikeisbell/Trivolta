@@ -15,6 +15,8 @@ const CATEGORIES = [
   { id: 'custom', label: 'Any topic', emoji: '✨', count: 'Ask anything', badge: 'AI', badgeType: 'ai' },
 ] as const
 
+const PLAYABLE_CATEGORIES = CATEGORIES.filter((cat) => cat.id !== 'custom')
+
 function timeUntilMidnightUTC(): string {
   const now = new Date()
   const midnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
@@ -55,12 +57,6 @@ export default function HomeScreen() {
               <Text style={styles.greeting}>
                 Hello, <Text style={styles.greetingName}>{user?.email?.split('@')[0] ?? 'player'}</Text>
               </Text>
-            </View>
-            <View style={styles.coinBadge}>
-              <View style={styles.coinCircle}>
-                <Text style={styles.coinIcon}>$</Text>
-              </View>
-              <Text style={styles.coinValue}>1.23k</Text>
             </View>
           </View>
 
@@ -163,7 +159,7 @@ export default function HomeScreen() {
             style={styles.quickPlay}
             activeOpacity={0.85}
             onPress={() => {
-              const random = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]
+              const random = PLAYABLE_CATEGORIES[Math.floor(Math.random() * PLAYABLE_CATEGORIES.length)]
               router.push({ pathname: '/question', params: { category: random.label } })
             }}
           >
@@ -223,28 +219,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
   },
-  coinBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.goldDim,
-    borderWidth: 0.5,
-    borderColor: 'rgba(245,158,11,0.3)',
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  coinCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: radius.full,
-    backgroundColor: colors.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  coinIcon: { fontSize: 9, fontWeight: '800', color: '#78350f' },
-  coinValue: { fontSize: 12, fontWeight: '700', color: colors.goldText },
-
   heroCard: {
     marginHorizontal: spacing.xxl,
     marginBottom: spacing.lg,

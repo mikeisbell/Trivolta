@@ -56,17 +56,6 @@ export default function ResultScreen() {
           </View>
         </View>
 
-        {/* XP bar */}
-        <View style={styles.xpWrap}>
-          <View style={styles.xpLabels}>
-            <Text style={styles.xpLabel}>Level 1</Text>
-            <Text style={styles.xpLabel}>+{Math.round(parseInt(score ?? '0') / 10)} XP earned</Text>
-          </View>
-          <View style={styles.xpTrack}>
-            <View style={[styles.xpFill, { width: `${Math.min(pct, 100)}%` }]} />
-          </View>
-        </View>
-
         {/* Actions */}
         <View style={styles.actions}>
           <TouchableOpacity
@@ -114,12 +103,6 @@ const styles = StyleSheet.create({
   },
   statNum: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
   statLabel: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-
-  xpWrap: { marginBottom: spacing.xl },
-  xpLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs },
-  xpLabel: { fontSize: 10, color: colors.textMuted },
-  xpTrack: { height: 6, backgroundColor: colors.surface, borderRadius: 3, overflow: 'hidden' },
-  xpFill: { height: 6, backgroundColor: colors.purple, borderRadius: 3 },
 
   actions: { gap: spacing.sm },
   primaryBtn: {

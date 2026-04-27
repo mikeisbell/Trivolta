@@ -23,8 +23,8 @@
 ✅ Auth screen — sign up, sign in, sign out, profile creation
 ✅ HomeScreen — greeting, hero daily challenge card, 2×2 category grid, tab navigator
 ✅ QuestionScreen — full solo game loop, timer, scoring, streak multiplier, explanation feedback
-✅ ResultScreen — score, accuracy, XP bar, play again, home
-✅ CustomCategoryScreen — any topic input, example prompts, trending categories
+✅ ResultScreen — score, accuracy, play again, home
+✅ CustomCategoryScreen — any topic input, example prompts, trending categories (real data)
 ✅ ProfileScreen — real stats from Supabase, achievements, XP, level
 ✅ LeaderboardScreen — podium top 3, rank rows with movement arrows, global/weekly tabs
 ✅ Lobby — CreateLobbyScreen
@@ -32,7 +32,7 @@
 ✅ Lobby — LobbyWaitingScreen (real-time player list via Supabase Realtime)
 ✅ Lobby — LobbyGameScreen (synchronous play, server-timestamp timer)
 ✅ Lobby — LobbyResultScreen (final scores for all players)
-✅ Daily Challenge — real implementation (not just a card)
+✅ Daily Challenge — real implementation (server-side, resets midnight UTC)
 
 ### Core Features
 ✅ AI question generation (solo) — claude-sonnet-4-6
@@ -47,8 +47,8 @@
 ✅ Room code join flow
 ✅ Lobby question generation (all 10 before game start)
 ✅ Daily challenge logic (server-side, resets at midnight)
+✅ Trending categories from real play data
 ⬜ AdMob rewarded ads integration
-⬜ Trending categories from real play data (currently hardcoded)
 
 ---
 
@@ -125,11 +125,7 @@
 ---
 
 ## Known Issues / Tech Debt
-- Trending categories on CustomCategoryScreen are hardcoded — needs real Supabase query
-- Daily challenge card on HomeScreen is visual only — needs real server-side logic
-- Coin balance on HomeScreen is hardcoded — needs real implementation
-- Streak display on HomeScreen is hardcoded — needs real data from Supabase
-- XP and level system not yet implemented — ResultScreen XP bar is decorative
+None currently.
 
 ---
 
@@ -149,6 +145,7 @@
 ✅ INSTRUCTIONS_LOBBY_TESTS.md
 ✅ INSTRUCTIONS_SOLO_GAME_TESTS.md
 ✅ INSTRUCTIONS_DAILY_CHALLENGE.md
+✅ INSTRUCTIONS_TECH_DEBT.md
 ⬜ INSTRUCTIONS_ADMOB.md
 ⬜ INSTRUCTIONS_EAS_BUILD.md
 ⬜ INSTRUCTIONS_PRODUCTION_SUPABASE.md

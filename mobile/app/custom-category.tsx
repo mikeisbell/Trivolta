@@ -1,12 +1,15 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   SafeAreaView, ScrollView, KeyboardAvoidingView, Platform
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { colors, radius, spacing } from '../lib/theme'
+import { supabase } from '../lib/supabase'
 
-const TRENDING = [
+type TrendingItem = { id: string; label: string; emoji: string; plays: string }
+
+const TRENDING: TrendingItem[] = [
   { id: 'olympics', label: 'Olympics Paris 2024', emoji: '🏅', plays: '12.4k' },
   { id: 'formula1', label: 'Formula 1 — 2024 season', emoji: '🏎️', plays: '9.1k' },
   { id: 'taylor_swift', label: 'Taylor Swift eras', emoji: '🎤', plays: '8.3k' },
@@ -15,7 +18,30 @@ const TRENDING = [
   { id: 'ancient_egypt', label: 'Ancient Egypt', emoji: '🏺', plays: '4.9k' },
   { id: 'premier_league', label: 'Premier League 2024', emoji: '⚽', plays: '4.1k' },
   { id: 'breaking_bad', label: 'Breaking Bad', emoji: '🧪', plays: '3.8k' },
-] as const
+]
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  'science': '🔬',
+  'pop culture': '🎬',
+  'history': '🏛️',
+  'any topic': '✨',
+  'olympics paris 2024': '🏅',
+  'formula 1 — 2024 season': '🏎️',
+  'taylor swift eras': '🎤',
+  'marvel cinematic universe': '🦸',
+  '90s hip hop deep cuts': '🎵',
+  'ancient egypt': '🏺',
+  'premier league 2024': '⚽',
+  'breaking bad': '🧪',
+}
+
+function slugify(label: string): string {
+  return label.toLowerCase().replace(/\s+/g, '_').slice(0, 20)
+}
+
+function emojiFor(label: string): string {
+  return CATEGORY_EMOJI[label.toLowerCase()] ?? '🎯'
+}
 
 const EXAMPLE_PROMPTS = [
   'Seinfeld episodes',
@@ -29,7 +55,33 @@ const EXAMPLE_PROMPTS = [
 export default function CustomCategoryScreen() {
   const router = useRouter()
   const [input, setInput] = useState('')
+  const [trendingCategories, setTrendingCategories] = useState<TrendingItem[]>(TRENDING)
   const inputRef = useRef<TextInput>(null)
+
+  useEffect(() => {
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    supabase
+      .from('scores')
+      .select('category')
+      .gte('played_at', since)
+      .then(({ data, error }) => {
+        if (error || !data) return
+        const counts = new Map<string, number>()
+        for (const row of data as Array<{ category: string }>) {
+          counts.set(row.category, (counts.get(row.category) ?? 0) + 1)
+        }
+        const ranked = Array.from(counts.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8)
+          .map(([label, count]) => ({
+            id: slugify(label),
+            label,
+            emoji: emojiFor(label),
+            plays: String(count),
+          }))
+        if (ranked.length >= 4) setTrendingCategories(ranked)
+      })
+  }, [])
 
   const handleSubmit = () => {
     const trimmed = input.trim()
@@ -123,7 +175,7 @@ export default function CustomCategoryScreen() {
           {/* Trending section */}
           <View style={styles.trendingSection}>
             <Text style={styles.sectionLabel}>TRENDING NOW</Text>
-            {TRENDING.map((item) => (
+            {trendingCategories.map((item) => (
               <TouchableOpacity
                 key={item.id}
                 testID={`custom-category-trending-${item.id}`}
