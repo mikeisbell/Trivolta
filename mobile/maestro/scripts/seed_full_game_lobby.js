@@ -1,4 +1,5 @@
 // Creates full game lobby: resolves host from HOST_EMAIL, adds GUEST_USER_ID, seeds 10 questions.
+// Optional ROOM_CODE env var (default 'GAME').
 // Sets output.lobbyId.
 var HEADERS = {
   apikey: SUPABASE_SERVICE_KEY,
@@ -7,8 +8,10 @@ var HEADERS = {
 }
 var BASE = SUPABASE_URL + '/rest/v1'
 
-// Remove any stale GAME lobby from previous failed runs
-http.delete(BASE + '/lobbies?code=eq.GAME', { headers: HEADERS })
+var CODE = (typeof ROOM_CODE !== 'undefined' && ROOM_CODE) ? ROOM_CODE : 'GAME'
+
+// Remove any stale lobby with this code from previous failed runs
+http.delete(BASE + '/lobbies?code=eq.' + CODE, { headers: HEADERS })
 
 // Resolve host user id from email via admin API
 var listResp = http.get(SUPABASE_URL + '/auth/v1/admin/users?per_page=1000', { headers: HEADERS })
@@ -25,7 +28,7 @@ for (var i = 0; i < users.length; i++) {
 var lobbyResp = http.post(BASE + '/lobbies?select=id,code', {
   headers: Object.assign({}, HEADERS, { Prefer: 'return=representation' }),
   body: JSON.stringify({
-    code: 'GAME',
+    code: CODE,
     host_id: hostUserId,
     category: 'science',
     status: 'waiting',

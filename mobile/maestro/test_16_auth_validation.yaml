@@ -1,0 +1,51 @@
+appId: com.mikeisbell.trivolta
+---
+# test_16: Auth screen validation — empty fields, mode toggle, wrong password
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign-in mode is default — email input visible
+- assertVisible:
+    id: "auth-email-input"
+
+# Tap submit with empty fields → Alert appears
+- tapOn:
+    id: "auth-submit-button"
+- assertVisible:
+    text: "Email and password are required"
+- tapOn:
+    text: "OK"
+    optional: true
+
+# Toggle to sign-up mode → username field becomes visible, button label changes
+- tapOn:
+    id: "auth-mode-toggle"
+- assertVisible:
+    id: "auth-username-input"
+- assertVisible:
+    text: "Create account"
+
+# Toggle back to sign-in mode
+- tapOn:
+    id: "auth-mode-toggle"
+- assertVisible:
+    text: "Sign in"
+
+# Enter valid email + wrong password → Alert with error
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "WrongPassword999!"
+- tapOn:
+    id: "auth-submit-button"
+- extendedWaitUntil:
+    visible:
+      text: "Invalid login credentials"
+    timeout: 10000
+- tapOn:
+    text: "OK"
+    optional: true

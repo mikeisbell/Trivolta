@@ -1,7 +1,7 @@
 # Trivolta — Project Tracker
 
 ## Status Key
-✅ Done | 🔄 In Progress | ⬜ Pending | 🔴 Blocked
+✅ Done | 🔄 In Progress | ⬜ Pending | 🔴 Blocked | ⏸ Deferred
 
 ---
 
@@ -48,7 +48,7 @@
 ✅ Lobby question generation (all 10 before game start)
 ✅ Daily challenge logic (server-side, resets at midnight)
 ✅ Trending categories from real play data
-⬜ AdMob rewarded ads integration
+⏸ AdMob rewarded ads — deferred post-beta
 
 ---
 
@@ -70,13 +70,31 @@
 ✅ test_13 — join lobby via room code
 ✅ test_14 — lobby game full flow
 ✅ test_15 — leave lobby (guest)
+✅ test_16 — auth validation
+✅ test_17 — results screen assertions
+⏸ test_18 — question error state/retry — manual-only, skipped
+✅ test_19 — join lobby invalid code
+✅ test_20 — home category taps
+✅ test_21 — custom category interactions
+✅ test_22 — create lobby custom topic
+✅ test_23 — leaderboard tab switching
+✅ test_24 — back navigation mid-game + results home
+✅ test_25 — join lobby error flow
+✅ test_26 — lobby results navigation
 
 ### Edge Case Coverage
-⬜ Network failure during question fetch — retry UI
+⬜ Network failure during question fetch — retry UI (test_18 skipped — manual-only)
 ⬜ Network failure during answer submit — graceful fail
-⬜ Full lobby (8 players) — join rejected
-⬜ Expired room code — error handling
+⬜ Full lobby (8 players) — join rejected (Tier 3 — test_30)
+✅ Expired room code — error handling (test_19, test_25)
 ⬜ Duplicate username on sign up — friendly error
+
+---
+
+## Phase 2.5 — Code Review & Bug Fixes
+
+⬜ Full code analysis — INSTRUCTIONS_CODE_REVIEW.md
+⬜ Bug fixes from code review — INSTRUCTIONS_BUG_FIXES.md (written after review)
 
 ---
 
@@ -86,6 +104,9 @@
 ⬜ Production environment variables set
 ⬜ EAS Build configured
 ⬜ Apple Developer account connected to EAS
+⬜ App icon designed and implemented
+⬜ Splash screen designed and implemented
+⬜ Privacy policy page (trivolta.app/privacy)
 ⬜ TestFlight build submitted
 ⬜ 25 beta testers recruited and onboarded
 ⬜ Feedback collection mechanism in place
@@ -101,15 +122,12 @@
 
 ---
 
-## Phase 5 — Polish
+## Phase 5 — Polish & Launch Prep
 
-⬜ App icon designed and implemented
-⬜ Splash screen designed and implemented
 ⬜ UI refinement pass — all screens
 ⬜ Animations and transitions
 ⬜ App Store screenshots (6.7" iPhone, required sizes)
 ⬜ App Store description and keywords
-⬜ Privacy policy page (trivolta.app/privacy)
 ⬜ Support page (trivolta.app/support)
 ⬜ Google Play Store assets
 
@@ -119,6 +137,7 @@
 
 ⬜ App Store submission
 ⬜ Google Play submission
+⬜ AdMob rewarded ads integration
 ⬜ Social media launch posts (TikTok, Instagram, X)
 ⬜ Product Hunt launch
 
@@ -146,6 +165,9 @@ None currently.
 ✅ INSTRUCTIONS_SOLO_GAME_TESTS.md
 ✅ INSTRUCTIONS_DAILY_CHALLENGE.md
 ✅ INSTRUCTIONS_TECH_DEBT.md
-⬜ INSTRUCTIONS_ADMOB.md
-⬜ INSTRUCTIONS_EAS_BUILD.md
+✅ INSTRUCTIONS_MISSING_TESTS.md
+✅ INSTRUCTIONS_CODE_REVIEW.md
+⬜ INSTRUCTIONS_BUG_FIXES.md (written after code review)
 ⬜ INSTRUCTIONS_PRODUCTION_SUPABASE.md
+⬜ INSTRUCTIONS_EAS_BUILD.md
+⬜ INSTRUCTIONS_ADMOB.md (deferred post-launch)

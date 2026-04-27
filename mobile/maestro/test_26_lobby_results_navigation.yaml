@@ -1,0 +1,389 @@
+appId: com.mikeisbell.trivolta
+env:
+  SUPABASE_URL: ${SUPABASE_URL}
+  SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+---
+# test_26: LobbyResultsScreen navigation — verify lobby-results-home and lobby-results-play-again
+# Runs the seeded full-game flow twice (room code LBRS), verifying each results action.
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Dismiss any stale "Open in mobile?" dialog from a previous failed run
+- tapOn:
+    text: "Open"
+    optional: true
+
+# Ensure guest user03 exists
+- runScript:
+    file: ./scripts/ensure_test_user_03.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+
+# Sign in as host
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+# ============================================================
+# Pass 1 — verify lobby-results-home
+# ============================================================
+- runScript:
+    file: ./scripts/seed_full_game_lobby.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      HOST_EMAIL: "testuser_maestro_02@trivolta-test.com"
+      GUEST_USER_ID: ${output.user03Id}
+      ROOM_CODE: "LBRS"
+
+- openLink: "trivolta://lobby/waiting?lobbyId=${output.lobbyId}&isHost=1"
+- tapOn:
+    text: "Open"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-waiting-code"
+    timeout: 15000
+- tapOn:
+    id: "lobby-waiting-start"
+
+# Answer all 10 questions
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+# Results screen — assertions
+- extendedWaitUntil:
+    visible:
+      id: "lobby-results-my-score"
+    timeout: 10000
+- assertVisible:
+    id: "lobby-results-list"
+- assertVisible:
+    id: "lobby-results-player-1"
+
+# Tap home → home screen
+- tapOn:
+    id: "lobby-results-home"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 10000
+
+# ============================================================
+# Pass 2 — verify lobby-results-play-again
+# ============================================================
+- runScript:
+    file: ./scripts/seed_full_game_lobby.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      HOST_EMAIL: "testuser_maestro_02@trivolta-test.com"
+      GUEST_USER_ID: ${output.user03Id}
+      ROOM_CODE: "LBRS"
+
+- openLink: "trivolta://lobby/waiting?lobbyId=${output.lobbyId}&isHost=1"
+- tapOn:
+    text: "Open"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-waiting-code"
+    timeout: 15000
+- tapOn:
+    id: "lobby-waiting-start"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-progress"
+    timeout: 30000
+- tapOn:
+    id: "lobby-game-answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "lobby-game-next"
+    timeout: 5000
+- tapOn:
+    id: "lobby-game-next"
+
+# Results screen → tap play-again → create-lobby screen
+- extendedWaitUntil:
+    visible:
+      id: "lobby-results-my-score"
+    timeout: 10000
+- tapOn:
+    id: "lobby-results-play-again"
+- extendedWaitUntil:
+    visible:
+      id: "create-lobby-submit"
+    timeout: 10000
+
+# Final cleanup
+- runScript:
+    file: ./scripts/cleanup_test_lobby.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      LOBBY_ID: ${output.lobbyId}

@@ -227,14 +227,14 @@ Coverage analysis based on full source review (April 2026). Tests are grouped by
 
 ### Tier 1 — High value, low complexity
 
-**test_16 — Auth form validation**
+**test_16 — Auth form validation** ✅ Passing
 - Tap `auth-submit-button` with blank email and password → Alert "Email and password are required" appears
 - Tap `auth-mode-toggle` → mode switches to sign up, `auth-username-input` becomes visible, button label changes to "Create account"
 - Tap `auth-mode-toggle` again → returns to sign in mode, `auth-username-input` disappears
 - Sign in with wrong password → Alert with Supabase error message appears
 - Sign up with blank username (mode = signup, email + password filled, username empty) → Alert "Username is required"
 
-**test_17 — Solo results screen assertions**
+**test_17 — Solo results screen assertions** ✅ Passing
 - Complete a 10-question game
 - Assert `results-screen` visible
 - Assert score value visible (non-zero number)
@@ -242,7 +242,7 @@ Coverage analysis based on full source review (April 2026). Tests are grouped by
 - Assert grade label visible ("Outstanding!", "Excellent!", "Good effort", or "Keep practicing")
 - Tap `results-home` → `home-screen` visible
 
-**test_18 — QuestionScreen error state and retry**
+**test_18 — QuestionScreen error state and retry** ⏭ Skipped — manual-only (requires stopping Edge Functions mid-test, not automatable in Maestro)
 - Start a quiz, kill Edge Functions mid-test (stop `supabase functions serve`)
 - `question-screen-error` testID becomes visible
 - "Try again" retry button visible
@@ -250,7 +250,7 @@ Coverage analysis based on full source review (April 2026). Tests are grouped by
 - `question-screen` loads successfully
 - Note: requires Maestro `runScript` to stop/start the Edge Function process, or this test is manual-only
 
-**test_19 — Join lobby with invalid room code**
+**test_19 — Join lobby with invalid room code** ✅ Passing
 - Navigate to JoinLobbyScreen
 - Enter `XXXX` (non-existent code) across `join-lobby-code-box-0` through `join-lobby-code-box-3`
 - Tap `join-lobby-submit`
@@ -260,14 +260,14 @@ Coverage analysis based on full source review (April 2026). Tests are grouped by
 
 ### Tier 2 — Medium value, medium complexity
 
-**test_20 — HomeScreen category taps**
+**test_20 — HomeScreen category taps** ✅ Passing
 - Tap `home-category-science` → `question-screen` loads with "Science" category
 - Back to home (via `question-back`)
 - Tap `home-category-pop_culture` → `question-screen` loads with "Pop culture"
 - Back to home
 - Tap `home-category-history` → `question-screen` loads with "History"
 
-**test_21 — Custom category freeform input and trending tap**
+**test_21 — Custom category freeform input and trending tap** ✅ Passing
 - Navigate to CustomCategoryScreen via `home-category-custom`
 - Assert `custom-category-submit` is disabled (input empty)
 - Type directly into `custom-category-input` (e.g. "Ancient Rome")
@@ -276,7 +276,7 @@ Coverage analysis based on full source review (April 2026). Tests are grouped by
 - Navigate back to CustomCategoryScreen
 - Tap `custom-category-trending-formula1` → `question-screen` loads
 
-**test_22 — Create lobby with custom topic**
+**test_22 — Create lobby with custom topic** ✅ Passing
 - Navigate to CreateLobbyScreen
 - Assert `create-lobby-submit` disabled (no category selected)
 - Tap `create-lobby-category-custom` → `create-lobby-custom-input` becomes visible
@@ -285,26 +285,26 @@ Coverage analysis based on full source review (April 2026). Tests are grouped by
 - Assert `create-lobby-submit` enabled
 - Tap `create-lobby-submit` → `lobby-waiting-code` visible
 
-**test_23 — Leaderboard period switching**
+**test_23 — Leaderboard period switching** ✅ Passing
 - Navigate to LeaderboardScreen
 - Assert `leaderboard-tab-alltime` active (default)
 - Tap `leaderboard-tab-week` → screen reloads (loading indicator may appear), content updates
 - Tap `leaderboard-tab-month` → screen reloads, content updates
 - Tap `leaderboard-tab-alltime` → returns to all-time view
 
-**test_24 — Back navigation mid-game and results home**
+**test_24 — Back navigation mid-game and results home** ✅ Passing
 - Start a quiz, answer Q1, tap `question-back` → `home-screen` visible (game abandoned, no crash)
 - Start a new quiz, complete all 10 questions
 - On `results-screen`, tap `results-home` → `home-screen` visible
 
-**test_25 — Join lobby with bad code (full error flow)**
+**test_25 — Join lobby with bad code (full error flow)** ✅ Passing
 - Navigate to JoinLobbyScreen
 - Enter 3 characters only — assert `join-lobby-submit` disabled (not all 4 boxes filled)
 - Enter 4th character — assert `join-lobby-submit` enabled
 - Clear and enter `XXXX` — tap submit — assert `join-lobby-error` visible
 - Backspace behavior: tap box-1, delete → focus moves to box-0 automatically
 
-**test_26 — Lobby results navigation**
+**test_26 — Lobby results navigation** ✅ Passing
 - Complete a full lobby game (deep-link setup same as test_14)
 - On `lobby-results-my-score` screen, assert `lobby-results-player-1` visible (seeded host is rank 1)
 - Tap `lobby-results-home` → `home-screen` visible

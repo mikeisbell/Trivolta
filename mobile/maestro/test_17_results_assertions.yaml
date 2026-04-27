@@ -1,0 +1,181 @@
+appId: com.mikeisbell.trivolta
+---
+# test_17: Solo results screen — complete a quiz, assert results visible, navigate home
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign in
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+# Start a Science quiz
+- tapOn:
+    id: "home-category-science"
+
+# Answer all 10 questions — tap answer-0, then question-next
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
+- tapOn:
+    id: "answer-0"
+- extendedWaitUntil:
+    visible:
+      id: "question-next"
+    timeout: 5000
+- tapOn:
+    id: "question-next"
+
+# Results screen
+- extendedWaitUntil:
+    visible:
+      id: "results-screen"
+    timeout: 10000
+
+# Score and play-again button visible (score row contains "Score" label)
+- assertVisible:
+    text: "Score"
+- assertVisible:
+    id: "results-play-again"
+
+# Tap home → back to HomeScreen
+- tapOn:
+    id: "results-home"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 10000

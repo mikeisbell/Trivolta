@@ -1,0 +1,60 @@
+appId: com.mikeisbell.trivolta
+---
+# test_19: Joining with an invalid room code → join-lobby-error visible
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign in
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+# Navigate to Play tab → Join lobby
+- tapOn:
+    id: "home-play-lobby"
+- extendedWaitUntil:
+    visible:
+      id: "play-screen"
+    timeout: 10000
+- tapOn:
+    id: "play-join-lobby"
+- waitForAnimationToEnd
+
+# Enter XXXX (non-existent code)
+- tapOn:
+    id: "join-lobby-code-box-0"
+- inputText: "X"
+- tapOn:
+    id: "join-lobby-code-box-1"
+- inputText: "X"
+- tapOn:
+    id: "join-lobby-code-box-2"
+- inputText: "X"
+- tapOn:
+    id: "join-lobby-code-box-3"
+- inputText: "X"
+
+- tapOn:
+    id: "join-lobby-submit"
+
+# Error message visible
+- extendedWaitUntil:
+    visible:
+      id: "join-lobby-error"
+    timeout: 10000

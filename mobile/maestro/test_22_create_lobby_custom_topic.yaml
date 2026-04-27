@@ -1,0 +1,70 @@
+appId: com.mikeisbell.trivolta
+env:
+  SUPABASE_URL: ${SUPABASE_URL}
+  SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+---
+# test_22: Create lobby with custom topic — verify waiting screen appears
+
+- clearState
+- launchApp:
+    clearState: true
+
+# Sign in as host
+- assertVisible:
+    id: "auth-email-input"
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    text: "Not Now"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+# Navigate to Play tab → Create lobby
+- tapOn:
+    id: "home-play-lobby"
+- extendedWaitUntil:
+    visible:
+      id: "play-screen"
+    timeout: 10000
+- tapOn:
+    id: "play-create-lobby"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "create-lobby-submit"
+
+# Tap the custom category card → custom input becomes visible
+- tapOn:
+    id: "create-lobby-category-custom"
+- assertVisible:
+    id: "create-lobby-custom-input"
+
+# Type a topic
+- tapOn:
+    id: "create-lobby-custom-input"
+- inputText: "90s video games"
+
+# Submit → waiting screen
+- tapOn:
+    id: "create-lobby-submit"
+
+- extendedWaitUntil:
+    visible:
+      id: "lobby-waiting-code"
+    timeout: 20000
+
+# Cleanup — host has no in-app leave button; delete lobby via service role
+- runScript:
+    file: ./scripts/cleanup_host_waiting_lobbies.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      HOST_EMAIL: "testuser_maestro_02@trivolta-test.com"
