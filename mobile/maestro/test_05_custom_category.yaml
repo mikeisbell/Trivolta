@@ -45,7 +45,8 @@ appId: com.mikeisbell.trivolta
 - tapOn:
     id: "custom-category-submit"
 
-# Question screen should load
-- waitForAnimationToEnd
-- assertVisible:
-    id: "question-screen"
+# Wait for question to load — may take several seconds for AI generation
+- extendedWaitUntil:
+    visible:
+      id: "question-screen"
+    timeout: 30000
