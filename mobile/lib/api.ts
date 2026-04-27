@@ -275,3 +275,79 @@ export async function saveScore(
     best_streak: bestStreak,
   })
 }
+
+export type LobbyPlayerResult = {
+  user_id: string
+  username: string
+  correct: number
+  total: number
+  accuracy: number
+  rank: number
+  isCurrentUser: boolean
+}
+
+export async function fetchLobbyResults(lobbyId: string): Promise<LobbyPlayerResult[]> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const currentUserId = session?.user.id ?? ''
+
+  // Fetch all players in this lobby
+  const { data: players, error: playersError } = await supabase
+    .from('lobby_players')
+    .select('user_id, profiles(username)')
+    .eq('lobby_id', lobbyId)
+
+  if (playersError || !players) return []
+
+  // Fetch all questions for this lobby (to know correct answers)
+  const { data: questions, error: questionsError } = await supabase
+    .from('lobby_questions')
+    .select('question_index, correct_index')
+    .eq('lobby_id', lobbyId)
+
+  if (questionsError || !questions) return []
+
+  const correctByIndex: Record<number, number> = {}
+  for (const q of questions) {
+    correctByIndex[q.question_index] = q.correct_index
+  }
+  const total = questions.length
+
+  // Fetch all answers for this lobby
+  const { data: answers, error: answersError } = await supabase
+    .from('lobby_answers')
+    .select('user_id, question_index, answer_index')
+    .eq('lobby_id', lobbyId)
+
+  if (answersError) return []
+
+  // Compute correct count per player
+  const correctCountByUser: Record<string, number> = {}
+  for (const answer of answers ?? []) {
+    const isCorrect = correctByIndex[answer.question_index] === answer.answer_index
+    if (isCorrect) {
+      correctCountByUser[answer.user_id] = (correctCountByUser[answer.user_id] ?? 0) + 1
+    }
+  }
+
+  // Build result rows
+  const rows = players.map((p: any) => {
+    const username = Array.isArray(p.profiles) ? p.profiles[0]?.username : p.profiles?.username ?? 'Unknown'
+    const correct = correctCountByUser[p.user_id] ?? 0
+    const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0
+    return {
+      user_id: p.user_id,
+      username,
+      correct,
+      total,
+      accuracy,
+      rank: 0,
+      isCurrentUser: p.user_id === currentUserId,
+    }
+  })
+
+  // Sort by correct count descending, assign ranks
+  rows.sort((a, b) => b.correct - a.correct)
+  rows.forEach((r, i) => { r.rank = i + 1 })
+
+  return rows
+}

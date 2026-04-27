@@ -31,7 +31,7 @@
 ✅ Lobby — JoinLobbyScreen
 ✅ Lobby — LobbyWaitingScreen (real-time player list via Supabase Realtime)
 ✅ Lobby — LobbyGameScreen (synchronous play, server-timestamp timer)
-⬜ Lobby — LobbyResultScreen (final scores for all players)
+✅ Lobby — LobbyResultScreen (final scores for all players)
 ⬜ Daily Challenge — real implementation (not just a card)
 
 ### Core Features
@@ -42,10 +42,10 @@
 ✅ Difficulty auto-scaling by streak (easy/medium/hard)
 ✅ Tab navigator (Home, Play, Ranks, Profile)
 ✅ Auth routing gate
-⬜ Real-time lobby synchronisation (Supabase Realtime)
+✅ Real-time lobby synchronisation (Supabase Realtime)
 ✅ Server-timestamp timer for lobby games
 ✅ Room code join flow
-⬜ Lobby question generation (all 10 before game start)
+✅ Lobby question generation (all 10 before game start)
 ⬜ Daily challenge logic (server-side, resets at midnight)
 ⬜ AdMob rewarded ads integration
 ⬜ Trending categories from real play data (currently hardcoded)
@@ -60,12 +60,12 @@
 ✅ test_03 — sign in
 ✅ test_04 — sign out
 ✅ test_05 — custom category flow
-⬜ test_06 — solo game loop (start, answer, complete 10 questions, results)
-⬜ test_07 — play again from results
-⬜ test_08 — timer expiry (unanswered question)
-⬜ test_09 — streak tracking
-⬜ test_10 — profile screen data
-⬜ test_11 — leaderboard display
+✅ test_06 — profile screen data
+✅ test_07 — leaderboard display
+⬜ test_08 — solo game loop (start, answer, complete 10 questions, results)
+⬜ test_09 — play again from results
+⬜ test_10 — timer expiry (unanswered question)
+⬜ test_11 — streak tracking
 ⬜ test_12 — create lobby
 ⬜ test_13 — join lobby via room code
 ⬜ test_14 — lobby game full flow
@@ -145,7 +145,7 @@
 ✅ INSTRUCTIONS_LOBBY_CREATE_JOIN.md
 ✅ INSTRUCTIONS_LOBBY_WAITING.md
 ✅ INSTRUCTIONS_LOBBY_GAME.md
-⬜ INSTRUCTIONS_LOBBY_RESULTS.md
+✅ INSTRUCTIONS_LOBBY_RESULTS.md
 ⬜ INSTRUCTIONS_DAILY_CHALLENGE.md
 ⬜ INSTRUCTIONS_ADMOB.md
 ⬜ INSTRUCTIONS_EAS_BUILD.md
