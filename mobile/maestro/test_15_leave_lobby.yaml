@@ -16,6 +16,13 @@ env:
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
 
+# Ensure guest user02 exists (signs in below)
+- runScript:
+    file: ./scripts/ensure_test_user_02.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+
 # Seed lobby with user03 as host only (room code LEAV)
 - runScript:
     file: ./scripts/create_join_test_lobby.js

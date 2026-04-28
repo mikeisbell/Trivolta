@@ -56,29 +56,22 @@ export async function fetchUserStats(): Promise<UserStats | null> {
 
   const userId = session.user.id
 
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single()
+  const [profileRes, scoresRes, leaderboardRes] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', userId).single(),
+    supabase.from('scores').select('score, correct_count, total_questions, best_streak').eq('user_id', userId),
+    supabase.from('leaderboard').select('id').order('total_score', { ascending: false }),
+  ])
 
-  if (profileError || !profile) return null
-
-  const { data: scores } = await supabase
-    .from('scores')
-    .select('score, correct_count, total_questions, best_streak')
-    .eq('user_id', userId)
+  if (profileRes.error || !profileRes.data) return null
+  const profile = profileRes.data
+  const scores = scoresRes.data
+  const leaderboard = leaderboardRes.data
 
   const totalScore = scores?.reduce((sum, s) => sum + s.score, 0) ?? 0
   const totalCorrect = scores?.reduce((sum, s) => sum + s.correct_count, 0) ?? 0
   const totalQuestions = scores?.reduce((sum, s) => sum + s.total_questions, 0) ?? 0
   const bestStreak = scores?.reduce((max, s) => Math.max(max, s.best_streak), 0) ?? 0
   const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0
-
-  const { data: leaderboard } = await supabase
-    .from('leaderboard')
-    .select('id')
-    .order('total_score', { ascending: false })
 
   const rank = leaderboard
     ? leaderboard.findIndex(row => row.id === userId) + 1
@@ -97,50 +90,24 @@ export async function fetchUserStats(): Promise<UserStats | null> {
 export async function fetchLeaderboard(
   period: LeaderboardPeriod
 ): Promise<LeaderboardEntry[]> {
-  let query = supabase
-    .from('scores')
-    .select('user_id, score, profiles(id, username, avatar_url)')
+  const { data, error } = await supabase.rpc('get_leaderboard', { period })
+  if (error || !data) return []
 
-  if (period === 'week') {
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-    query = query.gte('played_at', weekAgo)
-  } else if (period === 'month') {
-    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-    query = query.gte('played_at', monthAgo)
-  }
-
-  const { data: scoreRows, error } = await query
-
-  if (error || !scoreRows) return []
-
-  const userMap: Record<string, { username: string; avatar_url: string | null; total: number; games: number }> = {}
-
-  for (const row of scoreRows) {
-    const profile = Array.isArray((row as any).profiles) ? (row as any).profiles[0] : (row as any).profiles
-    if (!profile) continue
-    if (!userMap[row.user_id]) {
-      userMap[row.user_id] = {
-        username: profile.username,
-        avatar_url: profile.avatar_url,
-        total: 0,
-        games: 0,
-      }
-    }
-    userMap[row.user_id].total += (row as any).score ?? 0
-    userMap[row.user_id].games += 1
-  }
-
-  return Object.entries(userMap)
-    .map(([id, data]) => ({
-      id,
-      username: data.username,
-      avatar_url: data.avatar_url,
-      total_score: data.total,
-      games_played: data.games,
-    }))
-    .sort((a, b) => b.total_score - a.total_score)
-    .slice(0, 50)
-    .map((entry, i) => ({ ...entry, rank: i + 1 }))
+  return (data as Array<{
+    id: string
+    username: string
+    avatar_url: string | null
+    total_score: number
+    games_played: number
+    rank: number
+  }>).map(row => ({
+    id: row.id,
+    username: row.username,
+    avatar_url: row.avatar_url,
+    total_score: Number(row.total_score),
+    games_played: Number(row.games_played),
+    rank: Number(row.rank),
+  }))
 }
 
 export async function fetchLobbyPlayers(
@@ -150,6 +117,7 @@ export async function fetchLobbyPlayers(
     .from('lobby_players')
     .select('user_id, profiles(username)')
     .eq('lobby_id', lobbyId)
+    .order('joined_at', { ascending: true })
 
   if (error || !data) return []
 
@@ -215,19 +183,18 @@ export async function createGameSession(
   lobbyId: string,
   questionIndex: number
 ): Promise<void> {
-  // starts_at = 2 seconds from now (buffer for guests to receive and render)
-  const startsAt = new Date(Date.now() + 2000).toISOString()
-  const { error } = await supabase
-    .from('game_sessions')
-    .insert({ lobby_id: lobbyId, question_index: questionIndex, starts_at: startsAt })
-
+  const { error } = await supabase.rpc('create_game_session', {
+    p_lobby_id: lobbyId,
+    p_question_index: questionIndex,
+  })
   if (error) throw new Error(error.message)
 }
 
 export async function submitLobbyAnswer(
   lobbyId: string,
   questionIndex: number,
-  answerIndex: number
+  answerIndex: number,
+  score: number
 ): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return
@@ -239,10 +206,11 @@ export async function submitLobbyAnswer(
       user_id: session.user.id,
       question_index: questionIndex,
       answer_index: answerIndex,
+      score,
     })
 
   // Ignore duplicate key error (23505) — answer already submitted
-  if (error && !error.message.includes('duplicate') && !error.code?.includes('23505')) {
+  if (error && error.code !== '23505') {
     throw new Error(error.message)
   }
 }
@@ -282,6 +250,7 @@ export type LobbyPlayerResult = {
   correct: number
   total: number
   accuracy: number
+  score: number
   rank: number
   isCurrentUser: boolean
 }
@@ -348,24 +317,27 @@ export async function fetchLobbyResults(lobbyId: string): Promise<LobbyPlayerRes
   // Fetch all answers for this lobby
   const { data: answers, error: answersError } = await supabase
     .from('lobby_answers')
-    .select('user_id, question_index, answer_index')
+    .select('user_id, question_index, answer_index, score')
     .eq('lobby_id', lobbyId)
 
   if (answersError) return []
 
-  // Compute correct count per player
+  // Compute correct count and total score per player
   const correctCountByUser: Record<string, number> = {}
+  const scoreByUser: Record<string, number> = {}
   for (const answer of answers ?? []) {
     const isCorrect = correctByIndex[answer.question_index] === answer.answer_index
     if (isCorrect) {
       correctCountByUser[answer.user_id] = (correctCountByUser[answer.user_id] ?? 0) + 1
     }
+    scoreByUser[answer.user_id] = (scoreByUser[answer.user_id] ?? 0) + (answer.score ?? 0)
   }
 
   // Build result rows
   const rows = players.map((p: any) => {
     const username = Array.isArray(p.profiles) ? p.profiles[0]?.username : p.profiles?.username ?? 'Unknown'
     const correct = correctCountByUser[p.user_id] ?? 0
+    const score = scoreByUser[p.user_id] ?? 0
     const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0
     return {
       user_id: p.user_id,
@@ -373,13 +345,14 @@ export async function fetchLobbyResults(lobbyId: string): Promise<LobbyPlayerRes
       correct,
       total,
       accuracy,
+      score,
       rank: 0,
       isCurrentUser: p.user_id === currentUserId,
     }
   })
 
-  // Sort by correct count descending, assign ranks
-  rows.sort((a, b) => b.correct - a.correct)
+  // Sort by score descending, assign ranks
+  rows.sort((a, b) => b.score - a.score)
   rows.forEach((r, i) => { r.rank = i + 1 })
 
   return rows

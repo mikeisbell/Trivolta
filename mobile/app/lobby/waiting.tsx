@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, ActivityIndicator, FlatList, Alert,
@@ -15,10 +15,13 @@ import {
 
 type Player = { user_id: string; username: string }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export default function LobbyWaitingScreen() {
   const { lobbyId, isHost: isHostParam } = useLocalSearchParams<{ lobbyId: string; isHost: string }>()
   const isHost = isHostParam === '1'
   const router = useRouter()
+  const isValidLobbyId = typeof lobbyId === 'string' && UUID_REGEX.test(lobbyId)
 
   const [players, setPlayers] = useState<Player[]>([])
   const [roomCode, setRoomCode] = useState('')
@@ -26,11 +29,9 @@ export default function LobbyWaitingScreen() {
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
 
-  const playersChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
-  const lobbyChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
-
   // Load lobby details (code + category)
   useEffect(() => {
+    if (!isValidLobbyId) return
     async function loadLobby() {
       const { data } = await supabase
         .from('lobbies')
@@ -43,15 +44,17 @@ export default function LobbyWaitingScreen() {
       }
     }
     loadLobby()
-  }, [lobbyId])
+  }, [lobbyId, isValidLobbyId])
 
   // Initial player load
   useEffect(() => {
+    if (!isValidLobbyId) return
     fetchLobbyPlayers(lobbyId).then(setPlayers)
-  }, [lobbyId])
+  }, [lobbyId, isValidLobbyId])
 
   // Realtime: player list
   useEffect(() => {
+    if (!isValidLobbyId) return
     const channel = supabase
       .channel(`lobby-players-${lobbyId}`)
       .on(
@@ -61,13 +64,12 @@ export default function LobbyWaitingScreen() {
       )
       .subscribe()
 
-    playersChannelRef.current = channel
     return () => { supabase.removeChannel(channel) }
-  }, [lobbyId])
+  }, [lobbyId, isValidLobbyId])
 
   // Realtime: lobby status — guests navigate when host starts game
   useEffect(() => {
-    if (isHost) return
+    if (!isValidLobbyId || isHost) return
 
     const channel = supabase
       .channel(`lobby-status-${lobbyId}`)
@@ -82,9 +84,8 @@ export default function LobbyWaitingScreen() {
       )
       .subscribe()
 
-    lobbyChannelRef.current = channel
     return () => { supabase.removeChannel(channel) }
-  }, [lobbyId, isHost])
+  }, [lobbyId, isHost, isValidLobbyId])
 
   async function handleStart() {
     if (players.length < 2) return
@@ -115,6 +116,16 @@ export default function LobbyWaitingScreen() {
   }
 
   const canStart = players.length >= 2 && !generating
+
+  if (!isValidLobbyId) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={[styles.root, { alignItems: 'center', justifyContent: 'center' }]}>
+          <Text style={styles.errorText}>Invalid lobby link.</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView style={styles.safe}>

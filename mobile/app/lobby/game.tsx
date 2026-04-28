@@ -13,15 +13,13 @@ import {
   submitLobbyAnswer,
   finishLobbyGame,
 } from '../../lib/api'
+import { calcScore } from '../../lib/scoring'
 import type { AnswerState } from '../../lib/types'
 
 const TOTAL_QUESTIONS = 10
 const TIMER_SECONDS = 20
 const LETTERS = ['A', 'B', 'C', 'D']
-
-function calcScore(timeLeft: number, streak: number): number {
-  return Math.round(100 * (timeLeft / TIMER_SECONDS) * (1 + streak * 0.1))
-}
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 type Question = {
   question: string
@@ -35,6 +33,7 @@ export default function LobbyGameScreen() {
   const { lobbyId, isHost: isHostParam } = useLocalSearchParams<{ lobbyId: string; isHost: string }>()
   const isHost = isHostParam === '1'
   const router = useRouter()
+  const isValidLobbyId = typeof lobbyId === 'string' && UUID_REGEX.test(lobbyId)
 
   const [questionIndex, setQuestionIndex] = useState(0)
   const [question, setQuestion] = useState<Question | null>(null)
@@ -157,8 +156,9 @@ export default function LobbyGameScreen() {
     answerStateRef.current = newState
     setAnswerState(newState)
 
+    let pts = 0
     if (isCorrect) {
-      const pts = calcScore(timeLeftRef.current, streakRef.current)
+      pts = calcScore(timeLeftRef.current, streakRef.current, TIMER_SECONDS)
       setScore(prev => prev + pts)
       streakRef.current += 1
       setStreak(streakRef.current)
@@ -168,23 +168,34 @@ export default function LobbyGameScreen() {
     }
 
     // Save answer (non-blocking, idempotent)
-    submitLobbyAnswer(lobbyId, questionIndex, index).catch(() => {})
+    submitLobbyAnswer(lobbyId, questionIndex, index, pts).catch(() => {})
   }, [question, lobbyId, questionIndex, stopTimer])
 
   const handleNext = useCallback(async () => {
+    if (!isHost) return
     const nextIndex = questionIndex + 1
     if (nextIndex >= TOTAL_QUESTIONS) {
-      // Game over
+      // Game over — host marks lobby finished
       await finishLobbyGame(lobbyId)
       router.replace({ pathname: '/lobby/results', params: { lobbyId } })
     } else {
       setQuestionIndex(nextIndex)
       loadQuestion(nextIndex)
     }
-  }, [questionIndex, lobbyId, router, loadQuestion])
+  }, [isHost, questionIndex, lobbyId, router, loadQuestion])
 
   const timerPercent = (timeLeft / TIMER_SECONDS) * 100
   const timerColor = timeLeft > 10 ? colors.purple : timeLeft > 5 ? colors.gold : colors.danger
+
+  if (!isValidLobbyId) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorText}>Invalid lobby link.</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   if (loading) {
     return (
@@ -202,6 +213,13 @@ export default function LobbyGameScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.loadingContainer}>
           <Text style={styles.errorText}>Failed to load question.</Text>
+          <TouchableOpacity
+            testID="lobby-game-retry"
+            style={styles.retryBtn}
+            onPress={() => loadQuestion(questionIndex)}
+          >
+            <Text style={styles.retryText}>Try again</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     )
@@ -326,6 +344,13 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg },
   loadingText: { color: colors.textSecondary, fontSize: 14 },
   errorText: { color: colors.danger, fontSize: 14 },
+  retryBtn: {
+    backgroundColor: colors.purple,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.md,
+  },
+  retryText: { color: colors.textPrimary, fontWeight: '700', fontSize: 14 },
 
   topBar: {
     flexDirection: 'row',

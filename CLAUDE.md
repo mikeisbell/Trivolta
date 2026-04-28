@@ -30,11 +30,13 @@ No interstitials, no banners. Do not add non-rewarded ad placements without an e
 
 **Questions generated before game start — never during.** When a lobby host starts a game, the `generate-questions` Edge Function is called once, generates all 10 questions, and writes them to `lobby_questions`. No question generation happens mid-game.
 
-**Server-timestamp timer.** Each question has a `starts_at` timestamp written by the server to `game_sessions`. Clients calculate `starts_at + 20 seconds = timer_end` and count down locally. Never use client clock as the source of truth for timing.
+**Server-timestamp timer.** Each question has a `starts_at` timestamp written by the server to `game_sessions` via the `create_game_session` RPC. Clients calculate `starts_at + 20 seconds = timer_end` and count down locally. Never use client clock as the source of truth for timing. The RPC uses Postgres `now()` — never compute `starts_at` on the client.
 
 **Max lobby size is 8.** Enforced in the `create-lobby` Edge Function — not client-side. Attempts to join a full lobby return a 400 error.
 
 **Room code is the join mechanism for friends-only lobbies.** 4-character alphanumeric code generated at lobby creation. No in-app friend graph needed for v1.
+
+**Lobby ranking is by score, not correct count.** `lobby_answers` stores a `score` column (time bonus + streak multiplier). `fetchLobbyResults` ranks by summed score descending. Never rank by correct count alone — the in-game score display would then contradict the results screen.
 
 ---
 
@@ -54,19 +56,31 @@ answers: JSON.stringify(['Mars', 'Venus', 'Jupiter', 'Saturn'])
 
 ## game_sessions RLS Requires INSERT Policy
 
-The `game_sessions` table requires both SELECT and INSERT RLS policies. The host calls `createGameSession()` when loading Q0 — without an INSERT policy, this fails silently (no error thrown, no row written, timer never starts for guests). Always add INSERT when adding SELECT to `game_sessions`.
+The `game_sessions` table requires both SELECT and INSERT RLS policies. The host calls `create_game_session` RPC when loading each question — without an INSERT policy, this fails silently. Always add INSERT when adding SELECT to `game_sessions`.
+
+---
+
+## Edge Functions Require Authorization Header
+
+`solo-question` and `generate-questions` validate the `Authorization` header and return 401 if missing or invalid. Do NOT serve these functions with `--no-verify-jwt` in production — that would allow unauthenticated Anthropic API calls. In local dev, `--no-verify-jwt` is acceptable only if you understand the cost implication.
 
 ---
 
 ## Maestro Must Run Sequential (--shards=1)
 
-Maestro runs directory-level test suites in parallel by default. Tests 03–15 depend on the test user created in test_02. Parallel execution causes auth-dependent tests to fail non-deterministically. Always run with `--shards=1`:
+Maestro runs directory-level test suites in parallel by default. Tests 03–26 depend on the test user created in test_02. Parallel execution causes auth-dependent tests to fail non-deterministically. Always run with `--shards=1`:
 
 ```bash
 maestro test --shards=1 .
 ```
 
 The `run_tests.sh` script handles this. Never call `maestro test` directly on the directory.
+
+---
+
+## All Tests Are Self-Contained
+
+Every test that requires `testuser_maestro_02` calls `ensure_test_user_02.js` as its first step to guarantee the user exists. Running `./run_tests.sh` immediately after `supabase db reset` passes in a single run. No warm-up run required.
 
 ---
 

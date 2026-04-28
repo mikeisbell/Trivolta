@@ -22,6 +22,13 @@ env:
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
 
+# Ensure host user02 exists
+- runScript:
+    file: ./scripts/ensure_test_user_02.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+
 # Sign in as host
 - assertVisible:
     id: "auth-email-input"

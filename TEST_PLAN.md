@@ -76,9 +76,9 @@ maestro --version
 
 ## No Manual Test User Setup Required
 
-The test suite is self-sufficient. **test_02 deletes and recreates the test user automatically** via `scripts/delete_test_user.js` using the Supabase admin API. Tests 03–07 depend on the user existing after test_02 runs. Always run the full suite in order — never run tests 03+ in isolation unless test_02 has already run in the same Supabase session.
+All tests are self-contained. Each test that needs `testuser_maestro_02` calls `ensure_test_user_02.js` at the start to guarantee the user exists, regardless of run order. The full suite passes in a single run after `supabase db reset`.
 
-`testuser_maestro_03` is created on-demand by `scripts/ensure_test_user_03.js` at the start of tests 13–15. No manual setup required.
+test_02 still deletes and recreates the user (via `scripts/delete_test_user.js`) to validate the sign-up flow itself. `testuser_maestro_03` is created on-demand by `scripts/ensure_test_user_03.js` for the lobby tests that need a second player.
 
 ---
 

@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' }
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -13,7 +15,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: jsonHeaders,
       })
     }
 
@@ -26,14 +28,14 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: jsonHeaders,
       })
     }
 
     const { code } = await req.json()
     if (!code || typeof code !== 'string') {
       return new Response(JSON.stringify({ error: 'code required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: jsonHeaders,
       })
     }
 
@@ -47,7 +49,7 @@ serve(async (req) => {
 
     if (lobbyError || !lobby) {
       return new Response(JSON.stringify({ error: 'Lobby not found or already started' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: jsonHeaders,
       })
     }
 
@@ -61,7 +63,7 @@ serve(async (req) => {
 
     if ((count ?? 0) >= lobby.max_players) {
       return new Response(JSON.stringify({ error: 'Lobby is full' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: jsonHeaders,
       })
     }
 
@@ -76,12 +78,12 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ lobby }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: jsonHeaders,
     })
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: jsonHeaders,
     })
   }
 })

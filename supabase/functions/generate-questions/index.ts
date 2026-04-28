@@ -7,14 +7,31 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' }
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders })
+  }
+
+  const userClient = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } }
+  )
+  const { data: { user }, error: authError } = await userClient.auth.getUser()
+  if (authError || !user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders })
+  }
 
   try {
     const { lobby_id, category, difficulty = 'medium' } = await req.json()
     if (!lobby_id || !category) {
       return new Response(JSON.stringify({ error: 'lobby_id and category required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: jsonHeaders,
       })
     }
 
@@ -32,13 +49,11 @@ serve(async (req) => {
     if ((count ?? 0) >= 10) {
       return new Response(JSON.stringify({ success: true, count: count }), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: jsonHeaders,
       })
     }
 
-    const questions = []
-    for (let i = 0; i < 10; i++) {
-      const prompt = `Generate trivia question ${i + 1} of 10 about "${category}" at ${difficulty} difficulty.
+    const buildPrompt = (i: number) => `Generate trivia question ${i + 1} of 10 about "${category}" at ${difficulty} difficulty.
 Return ONLY valid JSON — no markdown:
 {
   "question": "the question text",
@@ -50,21 +65,23 @@ Return ONLY valid JSON — no markdown:
 }
 Pre-shuffle the answers. correct_index must point to correct answer after shuffling.`
 
+    const generateOne = async (i: number) => {
       const attempt = async () => {
         const msg = await anthropic.messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: 400,
           system: 'You are a trivia question generator. Return ONLY valid JSON. No markdown.',
-          messages: [{ role: 'user', content: prompt }],
+          messages: [{ role: 'user', content: buildPrompt(i) }],
         })
         const text = msg.content[0].type === 'text' ? msg.content[0].text : ''
         return JSON.parse(text.trim())
       }
-
-      let q
-      try { q = await attempt() } catch { q = await attempt() }
-      questions.push(q)
+      try { return await attempt() } catch { return await attempt() }
     }
+
+    const questions = await Promise.all(
+      Array.from({ length: 10 }, (_, i) => generateOne(i))
+    )
 
     const rows = questions.map((q, i) => ({
       lobby_id,
@@ -81,12 +98,12 @@ Pre-shuffle the answers. correct_index must point to correct answer after shuffl
 
     return new Response(JSON.stringify({ success: true, count: questions.length }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: jsonHeaders,
     })
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 503,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: jsonHeaders,
     })
   }
 })

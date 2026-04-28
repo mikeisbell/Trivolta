@@ -93,8 +93,8 @@
 
 ## Phase 2.5 — Code Review & Bug Fixes
 
-⬜ Full code analysis — INSTRUCTIONS_CODE_REVIEW.md
-⬜ Bug fixes from code review — INSTRUCTIONS_BUG_FIXES.md (written after review)
+✅ Full code analysis — INSTRUCTIONS_CODE_REVIEW.md
+✅ Bug fixes from code review — INSTRUCTIONS_BUG_FIXES.md
 
 ---
 
@@ -167,7 +167,8 @@ None currently.
 ✅ INSTRUCTIONS_TECH_DEBT.md
 ✅ INSTRUCTIONS_MISSING_TESTS.md
 ✅ INSTRUCTIONS_CODE_REVIEW.md
-⬜ INSTRUCTIONS_BUG_FIXES.md (written after code review)
+✅ INSTRUCTIONS_BUG_FIXES.md
+✅ INSTRUCTIONS_TEST_ISOLATION.md
 ⬜ INSTRUCTIONS_PRODUCTION_SUPABASE.md
 ⬜ INSTRUCTIONS_EAS_BUILD.md
 ⬜ INSTRUCTIONS_ADMOB.md (deferred post-launch)

@@ -169,7 +169,7 @@ export default function ProfileScreen() {
           >
             {/* Hero section */}
             <View style={styles.hero}>
-              {stats?.rank && (
+              {stats?.rank != null && (
                 <Text style={styles.rankText}>
                   #{stats.rank} position
                 </Text>

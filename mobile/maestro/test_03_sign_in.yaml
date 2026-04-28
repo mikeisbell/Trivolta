@@ -1,4 +1,7 @@
 appId: com.mikeisbell.trivolta
+env:
+  SUPABASE_URL: ${SUPABASE_URL}
+  SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
 ---
 # test_03: Sign in with existing credentials navigates to HomeScreen
 # Depends on test_02 having created testuser_maestro_02@trivolta-test.com
@@ -6,6 +9,12 @@ appId: com.mikeisbell.trivolta
 - clearState
 - launchApp:
     clearState: true
+
+- runScript:
+    file: ./scripts/ensure_test_user_02.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
 
 # Auth screen should be visible (sign in mode is default)
 - assertVisible:

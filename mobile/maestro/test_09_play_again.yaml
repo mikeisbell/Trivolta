@@ -1,10 +1,19 @@
 appId: com.mikeisbell.trivolta
+env:
+  SUPABASE_URL: ${SUPABASE_URL}
+  SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
 ---
 # test_09: Play again from ResultsScreen restarts the game loop
 
 - clearState
 - launchApp:
     clearState: true
+
+- runScript:
+    file: ./scripts/ensure_test_user_02.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
 
 # Sign in
 - assertVisible:

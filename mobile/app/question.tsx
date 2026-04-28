@@ -7,17 +7,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { generateSoloQuestion, saveScore, saveDailyChallengeCompletion } from '../lib/api'
 import { getHistory, addToHistory } from '../lib/gameHistory'
 import { colors, radius, spacing } from '../lib/theme'
+import { calcScore } from '../lib/scoring'
 import type { QuestionResponse, AnswerState, GameResult } from '../lib/types'
 
 const TOTAL_QUESTIONS = 10
 const TIMER_SECONDS = 20
 const LETTERS = ['A', 'B', 'C', 'D']
-
-function calcScore(timeLeft: number, streak: number): number {
-  const timeMultiplier = timeLeft / TIMER_SECONDS
-  const streakMultiplier = 1 + streak * 0.1
-  return Math.round(100 * timeMultiplier * streakMultiplier)
-}
 
 export default function QuestionScreen() {
   const { category, challengeId } = useLocalSearchParams<{ category: string; challengeId?: string }>()
@@ -100,7 +95,7 @@ export default function QuestionScreen() {
     setAnswerState(isCorrect ? 'correct' : 'wrong')
 
     if (isCorrect) {
-      const pts = calcScore(timeLeftRef.current, streakRef.current)
+      const pts = calcScore(timeLeftRef.current, streakRef.current, TIMER_SECONDS)
       setScore(prev => prev + pts)
       setCorrectCount(prev => prev + 1)
       streakRef.current += 1
@@ -118,7 +113,7 @@ export default function QuestionScreen() {
       const result: GameResult = {
         category: category ?? 'general knowledge',
         score,
-        correctCount: correctCount + (answerState === 'correct' ? 0 : 0),
+        correctCount,
         totalQuestions: TOTAL_QUESTIONS,
         bestStreak,
       }
@@ -155,7 +150,7 @@ export default function QuestionScreen() {
       setQuestionNum(prev => prev + 1)
       fetchQuestion()
     }
-  }, [questionNum, score, correctCount, bestStreak, answerState, category, challengeId, router, fetchQuestion])
+  }, [questionNum, score, correctCount, bestStreak, category, challengeId, router, fetchQuestion])
 
   const timerPercent = (timeLeft / TIMER_SECONDS) * 100
   const timerColor = timeLeft > 10 ? colors.purple : timeLeft > 5 ? colors.gold : colors.danger
