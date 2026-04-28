@@ -62,19 +62,29 @@ The `game_sessions` table requires both SELECT and INSERT RLS policies. The host
 
 ## Edge Functions Require Authorization Header
 
-`solo-question` and `generate-questions` validate the `Authorization` header and return 401 if missing or invalid. Do NOT serve these functions with `--no-verify-jwt` in production — that would allow unauthenticated Anthropic API calls. In local dev, `--no-verify-jwt` is acceptable only if you understand the cost implication.
+All 5 Edge Functions (`solo-question`, `generate-questions`, `create-lobby`, `join-lobby`, `daily-challenge`) MUST validate the `Authorization` header in code and return 401 on missing or invalid JWT. They use `auth.getUser()` against a Supabase client constructed with the user's JWT.
+
+**`--no-verify-jwt` is required, not forbidden.** Trivolta uses the new Supabase API key system (`sb_publishable_*` / `sb_secret_*`). These keys are not JWTs, so platform-level JWT verification at the gateway is incompatible. In-function auth via `Authorization` header check is the documented and correct pattern. Both local (`supabase functions serve --no-verify-jwt`) and production (`supabase functions deploy --no-verify-jwt`) use the flag.
+
+The publishable key is read from `req.headers.get('apikey')` with `Deno.env.get('SUPABASE_ANON_KEY')` as fallback — the env var sync is unreliable on new-key projects, so the header is the source of truth.
+
+Never construct a Supabase user client inside an Edge Function with `Deno.env.get('SUPABASE_ANON_KEY')` standalone — always use the apikey-header-with-env-fallback pattern.
+
+Local development uses asymmetric JWT signing keys via `supabase/signing_keys.json` and `config.toml`'s `[auth].signing_keys_path`. The keys file is gitignored.
 
 ---
 
-## Maestro Must Run Sequential (--shards=1)
+## Maestro Must Run Sequential (one flow per invocation)
 
-Maestro runs directory-level test suites in parallel by default. Tests 03–26 depend on the test user created in test_02. Parallel execution causes auth-dependent tests to fail non-deterministically. Always run with `--shards=1`:
+Maestro 2.5.0+ runs directory-level test suites in parallel even with `--shards=1`. Tests 03–26 depend on the test user created in test_02 and on a single shared simulator app, so parallel execution causes auth-dependent tests to fail non-deterministically. The `run_tests.sh` script forces sequential execution by looping `maestro test` once per flow file:
 
 ```bash
-maestro test --shards=1 .
+for f in maestro/test_*.yaml; do
+  maestro test --env ... "$f"
+done
 ```
 
-The `run_tests.sh` script handles this. Never call `maestro test` directly on the directory.
+Always run via `./run_tests.sh`. Never call `maestro test` directly on the directory.
 
 ---
 

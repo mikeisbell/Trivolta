@@ -11,6 +11,21 @@ const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' }
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders })
+  }
+
+  const userClient = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    (req.headers.get('apikey') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? ''),
+    { global: { headers: { Authorization: authHeader } } }
+  )
+  const { data: { user }, error: authError } = await userClient.auth.getUser()
+  if (authError || !user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders })
+  }
+
   try {
     const today = new Date().toISOString().slice(0, 10)
 
@@ -31,13 +46,6 @@ serve(async (req) => {
         headers: jsonHeaders,
       })
     }
-
-    const authHeader = req.headers.get('Authorization')
-    const userClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader ?? '' } } }
-    )
 
     const { data: completion } = await userClient
       .from('daily_challenge_completions')

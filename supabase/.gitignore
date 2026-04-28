@@ -6,3 +6,6 @@
 .env.keys
 .env.local
 .env.*.local
+
+# Asymmetric JWT signing keys (local dev) — never commit
+signing_keys.json
