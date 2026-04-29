@@ -114,7 +114,23 @@ Single run passes after supabase db reset. No warm-up run required.
 
 ---
 
-## Phase 3 — Beta Testing 🔄 NEXT
+## Phase 2.6 — Question Quality Architecture
+
+Separates fact (atomic truth, human-verified) from question (AI-rendered, cached).
+See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 complete.
+
+✅ Phase 2.6.1 — Schema + admin tooling shell — INSTRUCTIONS_PHASE_2.6.1_SCHEMA_AND_ADMIN.md
+⬜ Phase 2.6.2 — Import + AI source citation — INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
+⬜ Phase 2.6.3 — Seeding to 1,500 facts (Mike's curation work)
+⬜ Phase 2.6.4 — Render + Compose Edge Functions — INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md
+⬜ Phase 2.6.5 — Mobile integration + cutover — INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md
+⬜ Phase 2.6.6 — On-device caching (MMKV) — INSTRUCTIONS_PHASE_2.6.6_DEVICE_CACHING.md
+⬜ Phase 2.6.7 — Code-level fixes — INSTRUCTIONS_PHASE_2.6.7_CODE_FIXES.md
+⬜ Phase 2.6.8 — Validation + soak test
+
+---
+
+## Phase 3 — Beta Testing (gated on Phase 2.6.8)
 
 ✅ Local dev migrated to new Supabase API keys (sb_publishable / sb_secret) — INSTRUCTIONS_LOCAL_NEW_KEYS.md
 ⬜ Production Supabase project created — INSTRUCTIONS_PRODUCTION_SUPABASE.md
@@ -197,6 +213,12 @@ Single run passes after supabase db reset. No warm-up run required.
 ✅ INSTRUCTIONS_BUG_FIXES.md
 ✅ INSTRUCTIONS_TEST_ISOLATION.md
 ✅ INSTRUCTIONS_LOCAL_NEW_KEYS.md
+✅ INSTRUCTIONS_PHASE_2.6.1_SCHEMA_AND_ADMIN.md
+⬜ INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
+⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md
+⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md
+⬜ INSTRUCTIONS_PHASE_2.6.6_DEVICE_CACHING.md
+⬜ INSTRUCTIONS_PHASE_2.6.7_CODE_FIXES.md
 ⬜ INSTRUCTIONS_PRODUCTION_SUPABASE.md
 ⬜ INSTRUCTIONS_EAS_BUILD.md
 ⬜ INSTRUCTIONS_ADMOB.md (deferred post-launch)

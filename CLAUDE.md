@@ -74,6 +74,41 @@ Local development uses asymmetric JWT signing keys via `supabase/signing_keys.js
 
 ---
 
+## Admin Role Setup
+
+Trivolta gates admin access via a JWT claim at `auth.users.app_metadata.role = 'admin'`. `app_metadata` is service-role-only and not user-editable, so it is the safe place for role claims. `user_metadata` is user-editable and forgeable — never put role data there.
+
+The role is checked in three places:
+- Postgres RLS via the `public.is_admin()` helper, which reads `auth.jwt() -> 'app_metadata' ->> 'role'`
+- Future admin Edge Functions, which inspect `auth.user.app_metadata.role` after `auth.getUser()`
+- The mobile / Expo Web admin layout, via `useAuth().isAdmin`
+
+To grant admin to a user on local Supabase, run the following against the local DB (replace `<email>` with the target email):
+
+```bash
+docker exec -i supabase_db_Trivolta psql -U postgres -d postgres -c "
+update auth.users
+set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{\"role\":\"admin\"}'::jsonb
+where email = '<email>';
+"
+```
+
+Verify:
+
+```bash
+docker exec -i supabase_db_Trivolta psql -U postgres -d postgres -tAc "
+select raw_app_meta_data ->> 'role' from auth.users where email = '<email>';
+"
+```
+
+For production, use the Supabase Dashboard: Authentication → Users → select the user → User Metadata → set `role: admin` under `app_metadata` (not `user_metadata`).
+
+After granting, the user must sign out and sign back in. The role claim only enters the JWT on a fresh sign-in — existing sessions keep the old claims until refresh.
+
+`supabase db reset` wipes `auth.users`. Re-run the grant after every reset.
+
+---
+
 ## Maestro Must Run Sequential (one flow per invocation)
 
 Maestro 2.5.0+ runs directory-level test suites in parallel even with `--shards=1`. Tests 03–26 depend on the test user created in test_02 and on a single shared simulator app, so parallel execution causes auth-dependent tests to fail non-deterministically. The `run_tests.sh` script forces sequential execution by looping `maestro test` once per flow file:

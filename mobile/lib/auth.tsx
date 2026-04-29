@@ -6,6 +6,7 @@ import { clearSessionHistory } from './gameHistory'
 type AuthContextType = {
   session: Session | null
   user: User | null
+  isAdmin: boolean
   loading: boolean
   signUp: (email: string, password: string, username: string) => Promise<void>
   signIn: (email: string, password: string) => Promise<void>
@@ -66,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, isAdmin: session?.user?.app_metadata?.role === 'admin', loading, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

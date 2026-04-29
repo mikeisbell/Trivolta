@@ -18,3 +18,6 @@ supabase/.env.local
 
 # Diff output
 trivolta_diff.txt
+
+# Local Claude Code tooling state
+.claude/
