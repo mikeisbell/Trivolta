@@ -120,7 +120,7 @@ Separates fact (atomic truth, human-verified) from question (AI-rendered, cached
 See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 complete.
 
 ✅ Phase 2.6.1 — Schema + admin tooling shell — INSTRUCTIONS_PHASE_2.6.1_SCHEMA_AND_ADMIN.md
-⬜ Phase 2.6.2 — Import + AI source citation — INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
+✅ Phase 2.6.2 — Import + AI source citation — INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
 ⬜ Phase 2.6.3 — Seeding to 1,500 facts (Mike's curation work)
 ⬜ Phase 2.6.4 — Render + Compose Edge Functions — INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md
 ⬜ Phase 2.6.5 — Mobile integration + cutover — INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md
@@ -214,7 +214,7 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 ✅ INSTRUCTIONS_TEST_ISOLATION.md
 ✅ INSTRUCTIONS_LOCAL_NEW_KEYS.md
 ✅ INSTRUCTIONS_PHASE_2.6.1_SCHEMA_AND_ADMIN.md
-⬜ INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
+✅ INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
 ⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md
 ⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md
 ⬜ INSTRUCTIONS_PHASE_2.6.6_DEVICE_CACHING.md

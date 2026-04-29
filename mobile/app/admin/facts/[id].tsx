@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native'
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { supabase } from '../../../lib/supabase'
+import { useAuth } from '../../../lib/auth'
 import { colors, radius, spacing } from '../../../lib/theme'
 
 type Fact = {
@@ -36,39 +37,76 @@ type Distractor = {
 
 export default function AdminFactDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
+  const { user } = useAuth()
+  const router = useRouter()
   const [fact, setFact] = useState<Fact | null>(null)
   const [sources, setSources] = useState<Source[]>([])
   const [distractors, setDistractors] = useState<Distractor[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [actionBusy, setActionBusy] = useState<'approve' | 'reject' | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    if (!id) return
+    setLoading(true)
+    const [factRes, sourcesRes, distractorsRes] = await Promise.all([
+      supabase.from('facts').select('id, fact_text, correct_answer, difficulty, verification_status, is_high_value, source_origin, category_id').eq('id', id).maybeSingle(),
+      supabase.from('fact_sources').select('id, url, citation, excerpt, source_type, verified_reachable, human_confirmed, added_by_ai').eq('fact_id', id),
+      supabase.from('distractors').select('id, distractor_text, authored_by, is_active, quality_score').eq('fact_id', id),
+    ])
+    const firstError = factRes.error || sourcesRes.error || distractorsRes.error
+    if (firstError) {
+      setError(firstError.message)
+      setLoading(false)
+      return
+    }
+    setFact((factRes.data as Fact | null) ?? null)
+    setSources((sourcesRes.data as Source[]) ?? [])
+    setDistractors((distractorsRes.data as Distractor[]) ?? [])
+    setLoading(false)
+  }, [id])
 
   useEffect(() => {
-    if (!id) return
-    let cancelled = false
-    async function load() {
-      setLoading(true)
-      const [factRes, sourcesRes, distractorsRes] = await Promise.all([
-        supabase.from('facts').select('id, fact_text, correct_answer, difficulty, verification_status, is_high_value, source_origin, category_id').eq('id', id).maybeSingle(),
-        supabase.from('fact_sources').select('id, url, citation, excerpt, source_type, verified_reachable, human_confirmed, added_by_ai').eq('fact_id', id),
-        supabase.from('distractors').select('id, distractor_text, authored_by, is_active, quality_score').eq('fact_id', id),
-      ])
-      if (cancelled) return
-      const firstError = factRes.error || sourcesRes.error || distractorsRes.error
-      if (firstError) {
-        setError(firstError.message)
-        setLoading(false)
-        return
-      }
-      setFact((factRes.data as Fact | null) ?? null)
-      setSources((sourcesRes.data as Source[]) ?? [])
-      setDistractors((distractorsRes.data as Distractor[]) ?? [])
-      setLoading(false)
-    }
     load()
-    return () => {
-      cancelled = true
+  }, [load])
+
+  async function approve() {
+    if (!fact) return
+    setActionBusy('approve')
+    setActionError(null)
+    setSuccess(null)
+    const { error } = await supabase
+      .from('facts')
+      .update({ verification_status: 'verified', verified_at: new Date().toISOString(), verified_by: user?.id ?? null })
+      .eq('id', fact.id)
+    if (error) {
+      setActionError(error.message)
+    } else {
+      setSuccess('Fact verified.')
+      await load()
     }
-  }, [id])
+    setActionBusy(null)
+  }
+
+  async function reject() {
+    if (!fact) return
+    setActionBusy('reject')
+    setActionError(null)
+    setSuccess(null)
+    const { error } = await supabase
+      .from('facts')
+      .update({ verification_status: 'rejected' })
+      .eq('id', fact.id)
+    if (error) {
+      setActionError(error.message)
+      setActionBusy(null)
+      return
+    }
+    setActionBusy(null)
+    router.replace('/admin/facts/queue')
+  }
 
   if (loading) {
     return (
@@ -92,6 +130,9 @@ export default function AdminFactDetailScreen() {
     )
   }
 
+  const isVerified = fact.verification_status === 'verified'
+  const isRejected = fact.verification_status === 'rejected'
+
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       <Text style={styles.heading}>Fact</Text>
@@ -104,20 +145,41 @@ export default function AdminFactDetailScreen() {
         <View style={styles.kvRow}><Text style={styles.kvKey}>High value</Text><Text style={styles.kvValue}>{fact.is_high_value ? 'yes' : 'no'}</Text></View>
       </View>
 
+      {success ? (
+        <View style={styles.successBanner}><Text style={styles.successText}>{success}</Text></View>
+      ) : null}
+      {actionError ? (
+        <View style={styles.errorBanner}><Text style={styles.errorBannerText}>{actionError}</Text></View>
+      ) : null}
+
       <View style={styles.actionRow}>
-        <TouchableOpacity style={[styles.actionBtn, styles.actionDisabled]} disabled>
-          <Text style={styles.actionText}>Approve</Text>
-          <Text style={styles.actionSub}>Coming in Phase 2.6.2</Text>
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.approveBtn, (isVerified || actionBusy !== null) && styles.actionDisabled]}
+          disabled={isVerified || actionBusy !== null}
+          onPress={approve}
+        >
+          {actionBusy === 'approve' ? (
+            <ActivityIndicator color={colors.textPrimary} />
+          ) : (
+            <Text style={styles.actionText}>{isVerified ? 'Verified' : 'Approve'}</Text>
+          )}
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtn, styles.actionDisabled]} disabled>
-          <Text style={styles.actionText}>Reject</Text>
-          <Text style={styles.actionSub}>Coming in Phase 2.6.2</Text>
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.rejectBtn, (isRejected || actionBusy !== null) && styles.actionDisabled]}
+          disabled={isRejected || actionBusy !== null}
+          onPress={reject}
+        >
+          {actionBusy === 'reject' ? (
+            <ActivityIndicator color={colors.textPrimary} />
+          ) : (
+            <Text style={styles.actionText}>{isRejected ? 'Rejected' : 'Reject'}</Text>
+          )}
         </TouchableOpacity>
       </View>
 
       <Text style={styles.heading}>Sources ({sources.length})</Text>
       {sources.length === 0 ? (
-        <Text style={styles.emptyInline}>No sources yet. AI-assisted citation lands in Phase 2.6.2.</Text>
+        <Text style={styles.emptyInline}>No sources yet. Use /admin/sources/cite to add candidates.</Text>
       ) : (
         sources.map((s) => (
           <View key={s.id} style={styles.card}>
@@ -136,7 +198,7 @@ export default function AdminFactDetailScreen() {
 
       <Text style={styles.heading}>Distractors ({distractors.length})</Text>
       {distractors.length === 0 ? (
-        <Text style={styles.emptyInline}>No distractors yet. Generation lands in Phase 2.6.2.</Text>
+        <Text style={styles.emptyInline}>No distractors yet. Use /admin/distractors/generate to create them.</Text>
       ) : (
         distractors.map((d) => (
           <View key={d.id} style={styles.card}>
@@ -191,16 +253,32 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md, marginBottom: spacing.md },
   actionBtn: {
     flex: 1,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
   },
-  actionDisabled: { opacity: 0.55 },
+  approveBtn: { backgroundColor: colors.success },
+  rejectBtn: { backgroundColor: colors.danger },
+  actionDisabled: { opacity: 0.5 },
   actionText: { color: colors.textPrimary, fontWeight: '700', fontSize: 14 },
-  actionSub: { color: colors.textMuted, fontSize: 10, marginTop: 2 },
+  successBanner: {
+    backgroundColor: colors.successDim,
+    borderColor: colors.success,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  successText: { color: colors.success, fontSize: 12 },
+  errorBanner: {
+    backgroundColor: colors.dangerDim,
+    borderColor: colors.danger,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  errorBannerText: { color: colors.danger, fontSize: 12 },
   center: {
     flex: 1,
     backgroundColor: colors.background,
