@@ -123,13 +123,25 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 
 ✅ Phase 2.6.1 — Schema + admin tooling shell — INSTRUCTIONS_PHASE_2.6.1_SCHEMA_AND_ADMIN.md
 ✅ Phase 2.6.2 — Import + AI source citation — INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
-🔄 Phase 2.6.3a — Automated seeding tooling — INSTRUCTIONS_PHASE_2.6.3_AUTOMATED_SEEDING.md
-⬜ Phase 2.6.3b — Calibration + curation (Mike, ~5 hrs reduced from 50)
+✅ Phase 2.6.3a — Automated seeding tooling — INSTRUCTIONS_PHASE_2.6.3_AUTOMATED_SEEDING.md
+🔄 Phase 2.6.3b — Calibration + curation (Mike, ~5 hrs reduced from 50)
 ⬜ Phase 2.6.4 — Render + Compose Edge Functions — INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md
 ⬜ Phase 2.6.5 — Mobile integration + cutover — INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md
 ⬜ Phase 2.6.6 — On-device caching (MMKV) — INSTRUCTIONS_PHASE_2.6.6_DEVICE_CACHING.md
 ⬜ Phase 2.6.7 — Code-level fixes — INSTRUCTIONS_PHASE_2.6.7_CODE_FIXES.md
 ⬜ Phase 2.6.8 — Validation + soak test (gates Phase 3; runs against verified-only data)
+
+### Phase 2.6.3b — Mike's calibration steps (in order)
+
+**Step 0 — Pre-flight smoke test (~5 min, MANDATORY before any batch run).** Insert two manually-crafted facts: one known-true ("Capital of France?" → "Paris") and one deliberately-wrong ("Capital of France?" → "Berlin"). Run `fact-bank-auto-seed` on each. Expected: the true fact auto-verifies with confidence ≥4, the wrong fact lands in `needs_review` with confidence ≤2 and reasoning explaining the mismatch. If the wrong fact auto-verifies, the cross-check is broken — do NOT run any larger batch until fixed. SQL + curl commands for this test are documented in the conversation that produced Phase 2.6.3a.
+
+**Step 1 — Geography starter batch (~30 min).** Pull 50 Geography facts from OpenTrivia DB (https://opentdb.com/api.php?amount=50&type=multiple&category=22), import + auto-seed via /admin/facts/auto-seed. Open /admin/telemetry — verify cost ~$1, auto-verify rate 85–90%.
+
+**Step 2 — Spot-check 20 auto-verified facts.** Manually click through to source URLs, confirm each fact is correct. Note any false positives.
+
+**Step 3 — Review the needs_review queue.** Approve, reject, or edit each. Note any false negatives (facts that should have auto-verified).
+
+**Step 4 — Decide whether to scale up.** If false positive rate >5%, pause and tune. Otherwise scale to bigger batches across remaining 9 categories until ~1,500 facts seeded.
 
 ---
 
@@ -148,6 +160,13 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 ⬜ 25 beta testers recruited and onboarded
 ⬜ Feedback collection mechanism in place
 ⬜ Bug triage process defined (Sev 1/2/3)
+
+### Pre-Beta Checklist (deferred work between 2.6.8 and beta open)
+
+⬜ Cost optimization pass — prompt caching across all Anthropic-calling Edge Functions; consider Haiku for question rendering (~30% steady-state savings)
+⬜ Manual seeding verification — sample 20 auto-verified facts across categories, confirm correctness before opening beta
+⬜ run_tests.sh exit-code masking — when no simulator is booted, the tee pipe masks maestro's exit code and the script reports green. Folded into Phase 2.6.7.
+⬜ Wikipedia excerpt-match calibration — measure miss rate across categories; consider switching to flatter HTML sources (CIA Factbook, IMDB structured pages, .gov sites) where Wikipedia consistently fails
 
 ---
 
@@ -192,6 +211,8 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 - **test_18 manual-only** — QuestionScreen error/retry state cannot be automated in Maestro (requires killing Edge Functions mid-test). Must be manually verified before each beta release.
 - **lobby/results play-again not fully tested** — test_26 verifies navigation to `/lobby/create` only; does not verify that the full subsequent create-lobby flow completes successfully.
 - **AI source-citation excerpt-match misses on dynamically rendered pages** — Wikipedia and similar JS-rendered sites sometimes return raw HTML where the AI's quoted excerpt is not a substring. The mechanical check correctly flags these as failed. During seeding, Mike will need to either skip such candidates, manually paste a different excerpt that IS in the page body, or use flatter HTML sources (CIA Factbook, IMDB structured pages, .gov sites). Not a code defect — working as designed.
+- **`Alert.alert` is iOS-only on React Native Web** — sign-out from /(tabs)/profile silently no-ops on Expo Web because Alert.alert isn't supported there. Workaround during admin work: clear localStorage + reload. Permanent fix folded into Phase 2.6.7. New admin code is required to use `window.confirm()` or custom modals instead.
+- **`run_tests.sh` exit-code masking** — when run without a booted iOS Simulator, the `tee` pipe masks `maestro test`'s non-zero exit code and the script reports "25 passed". Folded into Phase 2.6.7. Until then, always confirm a simulator is booted before trusting a green result.
 
 ---
 
@@ -219,11 +240,11 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 ✅ INSTRUCTIONS_LOCAL_NEW_KEYS.md
 ✅ INSTRUCTIONS_PHASE_2.6.1_SCHEMA_AND_ADMIN.md
 ✅ INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
-🔄 INSTRUCTIONS_PHASE_2.6.3_AUTOMATED_SEEDING.md
+✅ INSTRUCTIONS_PHASE_2.6.3_AUTOMATED_SEEDING.md
 ⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md
 ⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md
 ⬜ INSTRUCTIONS_PHASE_2.6.6_DEVICE_CACHING.md
 ⬜ INSTRUCTIONS_PHASE_2.6.7_CODE_FIXES.md
-⬜ INSTRUCTIONS_PRODUCTION_SUPABASE.md
+✅ INSTRUCTIONS_PRODUCTION_SUPABASE.md
 ⬜ INSTRUCTIONS_EAS_BUILD.md
 ⬜ INSTRUCTIONS_ADMOB.md (deferred post-launch)
