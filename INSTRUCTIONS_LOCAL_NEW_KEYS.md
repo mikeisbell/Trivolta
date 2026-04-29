@@ -16,10 +16,22 @@ The new `sb_publishable_*` / `sb_secret_*` keys are not JWTs. Three consequences
 
 3. **CLAUDE.md rule update required.** The existing rule "Do NOT serve these functions with `--no-verify-jwt` in production" was correct under the legacy system. Under new keys, `--no-verify-jwt` is the documented and required deploy flag — provided every function validates auth in code.
 
+## Toolchain notes (verified from prior run, 2026-04-28)
+
+These are LOCAL-ONLY toolchain quirks. They do NOT apply to production deploys.
+
+- **`supabase functions serve` on CLI 2.95.4+ does not auto-load `supabase/.env.local`.** The `ANTHROPIC_API_KEY` will be unreachable to Edge Functions and `solo-question` / `generate-questions` will fail with "Could not resolve authentication method" (Anthropic SDK error) unless the file is passed explicitly via `--env-file`. Use:
+  ```
+  supabase functions serve --no-verify-jwt --env-file supabase/.env.local
+  ```
+  This is a `functions serve` (local) quirk only. Production `functions deploy` uses Supabase's encrypted secret store via `supabase secrets set` and is unaffected.
+
+- **Maestro 2.5.0+ parallelizes flows within a single shard, even with `--shards=1`.** Tests 03–26 share the test user created in test_02 and a single simulator app, so parallel execution causes auth-dependent tests to fail non-deterministically. The `mobile/run_tests.sh` script handles this by running each flow as its own `maestro test` invocation. Never call `maestro test` directly on the directory. If a future "simplification" tries to revert to a single directory-level invocation, it will break — even with `--shards=1`.
+
 ## Verifiable objective
 
 - [ ] Supabase CLI is upgraded to the **latest stable release** (currently 2.95.4 as of Apr 27, 2026 — Claude Code must check the actual latest at run time and upgrade to it)
-- [ ] Maestro is upgraded to the **latest stable release** (currently 2.4.x as of Apr 3, 2026 — Claude Code must check the actual latest at run time and upgrade to it)
+- [ ] Maestro is upgraded to the **latest stable release** (currently 2.5.x as of Apr 28, 2026 — Claude Code must check the actual latest at run time and upgrade to it)
 - [ ] `supabase/config.toml` has `[auth].signing_keys_path = "./signing_keys.json"` set
 - [ ] `supabase/signing_keys.json` exists, contains a valid ES256 signing key, and is gitignored
 - [ ] `supabase status` after `supabase start` outputs a `Publishable key: sb_publishable_*` and `Secret key: sb_secret_*` (not legacy `anon`/`service_role`)
@@ -28,7 +40,8 @@ The new `sb_publishable_*` / `sb_secret_*` keys are not JWTs. Three consequences
 - [ ] `mobile/.env.local` contains the local `sb_publishable_*` key as `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 - [ ] `mobile/maestro/.env.maestro` contains the local `sb_secret_*` key as `SUPABASE_SERVICE_KEY`
 - [ ] `supabase/.env.local` is updated to remove legacy keys and reference new keys (used by Edge Functions in local dev only)
-- [ ] CLAUDE.md is updated: the `--no-verify-jwt` rule is rewritten for the new-key system
+- [ ] CLAUDE.md is updated: the `--no-verify-jwt` rule is rewritten for the new-key system, AND the Maestro sequential-execution rule reflects the per-flow loop pattern (not `--shards=1`)
+- [ ] `mobile/run_tests.sh` runs flows one-per-invocation (not as a directory-level call) so Maestro 2.5.0+ parallelization does not break sequential dependency on test_02
 - [ ] All 25 active Maestro tests pass on a fresh `supabase db reset` against the new-key local stack
 
 ## Constraints
@@ -93,7 +106,7 @@ This is idempotent — reinstalls latest over an existing install. After the scr
 
 ```bash
 maestro --version
-# expect: a version >= 2.4.0 (the latest as of when this INSTRUCTIONS file was written; newer is fine)
+# expect: a version >= 2.5.0 (the latest as of when this INSTRUCTIONS file was written; newer is fine)
 ```
 
 If Mike installed Maestro via Homebrew instead of the install script, use:
@@ -104,6 +117,8 @@ maestro --version
 ```
 
 WORKFLOW.md currently notes "`assertVisible` with inline `timeout` not supported in Maestro 2.4.0 — use `extendedWaitUntil`." After upgrade, re-check that note: if the new Maestro version supports inline `timeout`, the workaround is no longer mandatory but the existing tests using `extendedWaitUntil` will still work — leave them alone for this task. Only re-evaluate that workaround in a separate follow-up task.
+
+**Note on Maestro 2.5.0 parallelization:** Maestro 2.5.0 changed default behavior to parallelize flows within a single shard, even with `--shards=1`. This breaks Trivolta's tests because tests 03–26 depend on the user created by test_02. Step 13 covers the `run_tests.sh` rewrite to force one-flow-per-invocation execution. Do NOT skip that step.
 
 ### Step 3 — Stop local Supabase
 
@@ -312,13 +327,15 @@ The maestro scripts send the secret key in both `apikey` and `Authorization: Bea
 
 ### Step 10 — Update `supabase/.env.local`
 
-Open in VS Code. The Edge Functions read `ANTHROPIC_API_KEY` from this file in local dev. They also rely on the platform-injected `SUPABASE_*` env vars, which `supabase functions serve` provides automatically. Confirm `supabase/.env.local` contains:
+Open in VS Code. The Edge Functions read `ANTHROPIC_API_KEY` from this file in local dev. Confirm `supabase/.env.local` contains:
 
 ```
 ANTHROPIC_API_KEY=<the-existing-anthropic-key>
 ```
 
 Remove any lines referencing legacy `SUPABASE_ANON_KEY` or `SUPABASE_SERVICE_ROLE_KEY` if present — those values are auto-injected by `supabase functions serve` and don't belong in the file.
+
+**Important — `--env-file` flag is required at serve time.** As of Supabase CLI 2.95.4, `supabase functions serve` does NOT auto-load `supabase/.env.local`. The `ANTHROPIC_API_KEY` set above will be invisible to Edge Functions unless the serve command is invoked with `--env-file supabase/.env.local`. This is reflected in the serve command in Step 13 and in `mobile/run_tests.sh`'s prereq comment.
 
 ### Step 11 — Update `mobile/.env.example` and `mobile/maestro/.env.maestro.example`
 
@@ -345,7 +362,7 @@ Open `/Users/mizzy/Developer/Trivolta/CLAUDE.md`. Find the section starting with
 ```markdown
 All 5 Edge Functions (`solo-question`, `generate-questions`, `create-lobby`, `join-lobby`, `daily-challenge`) MUST validate the `Authorization` header in code and return 401 on missing or invalid JWT. They use `auth.getUser()` against a Supabase client constructed with the user's JWT.
 
-**`--no-verify-jwt` is required, not forbidden.** Trivolta uses the new Supabase API key system (`sb_publishable_*` / `sb_secret_*`). These keys are not JWTs, so platform-level JWT verification at the gateway is incompatible. In-function auth via `Authorization` header check is the documented and correct pattern. Both local (`supabase functions serve --no-verify-jwt`) and production (`supabase functions deploy --no-verify-jwt`) use the flag.
+**`--no-verify-jwt` is required, not forbidden.** Trivolta uses the new Supabase API key system (`sb_publishable_*` / `sb_secret_*`). These keys are not JWTs, so platform-level JWT verification at the gateway is incompatible. In-function auth via `Authorization` header check is the documented and correct pattern. Both local (`supabase functions serve --no-verify-jwt --env-file supabase/.env.local`) and production (`supabase functions deploy --no-verify-jwt`) use the flag.
 
 The publishable key is read from `req.headers.get('apikey')` with `Deno.env.get('SUPABASE_ANON_KEY')` as fallback — the env var sync is unreliable on new-key projects, so the header is the source of truth.
 
@@ -354,7 +371,33 @@ Never construct a Supabase user client inside an Edge Function with `Deno.env.ge
 Local development uses asymmetric JWT signing keys via `supabase/signing_keys.json` and `config.toml`'s `[auth].signing_keys_path`. The keys file is gitignored.
 ```
 
-### Step 13 — Reset local DB and run the Maestro suite
+Then find the section starting with `## Maestro Must Run Sequential` (whatever its current title). Replace its body with:
+
+```markdown
+Maestro 2.5.0+ runs directory-level test suites in parallel even with `--shards=1`. Tests 03–26 depend on the test user created in test_02 and on a single shared simulator app, so parallel execution causes auth-dependent tests to fail non-deterministically. The `run_tests.sh` script forces sequential execution by looping `maestro test` once per flow file:
+
+​```bash
+for f in maestro/test_*.yaml; do
+  maestro test --env ... "$f"
+done
+​```
+
+Always run via `./run_tests.sh`. Never call `maestro test` directly on the directory.
+```
+
+(Note the zero-width-space-prefixed code fences `​```` are intentional to escape the nested fence — render and replace with actual triple-backticks when writing.)
+
+### Step 13 — Rewrite `mobile/run_tests.sh` to loop one flow per invocation
+
+Replace the contents of `/Users/mizzy/Developer/Trivolta/mobile/run_tests.sh` with the loop-per-flow pattern. Preserve:
+- `set -a` / `source maestro/.env.maestro` / `set +a` env loading
+- The single-flow shortcut (`./run_tests.sh test_08_solo_game_loop.yaml`) for debugging one test
+- Output to `~/trivolta_test_output.txt`
+- Non-zero exit on any failure
+
+Update the prereq comment block at the top of the file to include the `--env-file supabase/.env.local` flag on the `supabase functions serve` command.
+
+### Step 14 — Reset local DB and run the Maestro suite
 
 ```bash
 cd /Users/mizzy/Developer/Trivolta
@@ -365,7 +408,7 @@ In a separate terminal:
 
 ```bash
 cd /Users/mizzy/Developer/Trivolta
-supabase functions serve --no-verify-jwt
+supabase functions serve --no-verify-jwt --env-file supabase/.env.local
 ```
 
 Back in the original terminal:
@@ -380,19 +423,21 @@ npx expo run:ios
 
 All 25 active Maestro tests must pass. If any fail, the patch is wrong somewhere — fix before reporting done. Common failure modes:
 
+- `Could not resolve authentication method` from Anthropic SDK → the `--env-file supabase/.env.local` flag is missing on the `supabase functions serve` command. The `ANTHROPIC_API_KEY` is unreachable.
 - `PGRST301: No suitable key or wrong key type` → forgot to re-query `supabase status` after Step 7; current `mobile/.env.local` value is stale
 - `401 Unauthorized` on every function call → apikey-header pattern wrong in one of the functions; re-check Step 6's grep
 - Maestro `ensure_test_user_02.js` failing with auth error → `mobile/maestro/.env.maestro` has wrong key; re-check Step 9
+- Maestro reports tests stomping on each other (e.g. test_03 fails because test_02's user wasn't ready) → `run_tests.sh` is calling `maestro test` on the directory instead of looping per flow; re-check Step 13
 - Maestro reports "command not recognised" on a flag — Maestro upgrade in Step 2 may have deprecated something; check `maestro --help` and consult the Maestro CHANGELOG for the version Mike now has
 
-### Step 14 — Update tracker
+### Step 15 — Update tracker
 
 Edit `/Users/mizzy/Developer/Trivolta/TRIVOLTA_TRACKER.md`:
 
 - Under "Phase 3 — Beta Testing", flip `Local dev migrated to new Supabase API keys (sb_publishable / sb_secret) — INSTRUCTIONS_LOCAL_NEW_KEYS.md` from ⬜ to ✅
 - Under "INSTRUCTIONS Files Written", flip `INSTRUCTIONS_LOCAL_NEW_KEYS.md` from ⬜ to ✅
 
-### Step 15 — Commit
+### Step 16 — Commit
 
 ```bash
 cd /Users/mizzy/Developer/Trivolta
@@ -409,7 +454,8 @@ git add INSTRUCTIONS_LOCAL_NEW_KEYS.md \
         supabase/.gitignore \
         supabase/functions/ \
         mobile/.env.example \
-        mobile/maestro/.env.maestro.example
+        mobile/maestro/.env.maestro.example \
+        mobile/run_tests.sh
 git commit -m "feat: local dev migrated to new sb_publishable/sb_secret keys, all Edge Functions hardened, CLI+Maestro upgraded to latest"
 git push
 git status
@@ -458,15 +504,25 @@ grep '^EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_' /Users/mizzy/Developer/Tri
 grep '^SUPABASE_SERVICE_KEY=sb_secret_' /Users/mizzy/Developer/Trivolta/mobile/maestro/.env.maestro
 # expect: a match
 
-# 9. CLAUDE.md updated
+# 9. CLAUDE.md updated — both rules
 grep "no-verify-jwt. is required" /Users/mizzy/Developer/Trivolta/CLAUDE.md
 # expect: a match
+grep "Maestro 2.5.0" /Users/mizzy/Developer/Trivolta/CLAUDE.md
+# expect: a match
 
-# 10. Maestro suite green
+# 10. run_tests.sh loops per flow
+grep "for f in maestro/test_" /Users/mizzy/Developer/Trivolta/mobile/run_tests.sh
+# expect: a match
+
+# 11. run_tests.sh prereq comment mentions --env-file
+grep -- "--env-file supabase/.env.local" /Users/mizzy/Developer/Trivolta/mobile/run_tests.sh
+# expect: a match
+
+# 12. Maestro suite green
 cd /Users/mizzy/Developer/Trivolta/mobile && ./run_tests.sh 2>&1 | tail -10
 # expect: 25 passing, 0 failing
 
-# 11. Nothing secret staged
+# 13. Nothing secret staged
 cd /Users/mizzy/Developer/Trivolta
 git status --porcelain | grep -E 'signing_keys\.json|\.env\.local|\.env\.maestro$'
 # expect: no output
