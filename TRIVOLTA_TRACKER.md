@@ -119,14 +119,16 @@ Single run passes after supabase db reset. No warm-up run required.
 Separates fact (atomic truth, human-verified) from question (AI-rendered, cached).
 See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 complete.
 
+**Verification-gate scope (decided 2026-04-29):** the `verification_status = 'verified'` filter applies ONLY to production gameplay. Dev, Maestro, and iOS Simulator builds run against pending facts so 2.6.4–2.6.7 can proceed in parallel with Mike's seeding (2.6.3) instead of blocking on it. The strict filter activates in `compose-game` based on environment, and is enforced as the actual gate by Phase 2.6.8.
+
 ✅ Phase 2.6.1 — Schema + admin tooling shell — INSTRUCTIONS_PHASE_2.6.1_SCHEMA_AND_ADMIN.md
 ✅ Phase 2.6.2 — Import + AI source citation — INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
-⬜ Phase 2.6.3 — Seeding to 1,500 facts (Mike's curation work)
+🔄 Phase 2.6.3 — Seeding to 1,500 facts (Mike's curation work, runs in parallel with 2.6.4–2.6.7)
 ⬜ Phase 2.6.4 — Render + Compose Edge Functions — INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md
 ⬜ Phase 2.6.5 — Mobile integration + cutover — INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md
 ⬜ Phase 2.6.6 — On-device caching (MMKV) — INSTRUCTIONS_PHASE_2.6.6_DEVICE_CACHING.md
 ⬜ Phase 2.6.7 — Code-level fixes — INSTRUCTIONS_PHASE_2.6.7_CODE_FIXES.md
-⬜ Phase 2.6.8 — Validation + soak test
+⬜ Phase 2.6.8 — Validation + soak test (gates Phase 3; runs against verified-only data)
 
 ---
 
@@ -180,7 +182,7 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 ## Known Issues / Tech Debt
 
 - **`heroPlayBtnDone` style missing** — daily challenge "Completed ✓" button stays purple instead of green (DEVIATIONS.md #2). Fix in polish pass.
-- **Leaderboard rank outside top 50** — `fetchUserStats` uses the `leaderboard` view which limits to 50 rows. Users ranked 51+ see rank 0 or null on ProfileScreen. Not fixed.
+- **Leaderboard rank outside top 50** — `fetchUserStats` uses the `leaderboard` view which limits to 50 rows. Users ranked 51+ see rank 0 or null on ProfileScreen. Not fixed. (Folded into Phase 2.6.7.)
 - **Daily challenge shared questions** — each user gets independently AI-generated questions for the same day. Intended design: all users get the same 10 questions. Deferred as a product redesign.
 - **XP and level system is decorative** — ProfileScreen shows XP bar and level computed from score, but there is no real XP progression system, no level-up events, and no XP from daily challenge completion. Acceptable for beta, not for launch.
 - **HomeScreen streak display hardcoded** — greeting area shows a hardcoded "🔥 3 day streak". Actual consecutive-day streak tracking from Supabase not implemented. Cosmetic only.
@@ -188,6 +190,7 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 - **Android not tested** — all Maestro tests run on iOS Simulator only. Android parity assumed but untested.
 - **test_18 manual-only** — QuestionScreen error/retry state cannot be automated in Maestro (requires killing Edge Functions mid-test). Must be manually verified before each beta release.
 - **lobby/results play-again not fully tested** — test_26 verifies navigation to `/lobby/create` only; does not verify that the full subsequent create-lobby flow completes successfully.
+- **AI source-citation excerpt-match misses on dynamically rendered pages** — Wikipedia and similar JS-rendered sites sometimes return raw HTML where the AI's quoted excerpt is not a substring. The mechanical check correctly flags these as failed. During seeding, Mike will need to either skip such candidates, manually paste a different excerpt that IS in the page body, or use flatter HTML sources (CIA Factbook, IMDB structured pages, .gov sites). Not a code defect — working as designed.
 
 ---
 
