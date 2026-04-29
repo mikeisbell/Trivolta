@@ -123,7 +123,8 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 
 ✅ Phase 2.6.1 — Schema + admin tooling shell — INSTRUCTIONS_PHASE_2.6.1_SCHEMA_AND_ADMIN.md
 ✅ Phase 2.6.2 — Import + AI source citation — INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
-🔄 Phase 2.6.3 — Seeding to 1,500 facts (Mike's curation work, runs in parallel with 2.6.4–2.6.7)
+🔄 Phase 2.6.3a — Automated seeding tooling — INSTRUCTIONS_PHASE_2.6.3_AUTOMATED_SEEDING.md
+⬜ Phase 2.6.3b — Calibration + curation (Mike, ~5 hrs reduced from 50)
 ⬜ Phase 2.6.4 — Render + Compose Edge Functions — INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md
 ⬜ Phase 2.6.5 — Mobile integration + cutover — INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md
 ⬜ Phase 2.6.6 — On-device caching (MMKV) — INSTRUCTIONS_PHASE_2.6.6_DEVICE_CACHING.md
@@ -218,6 +219,7 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 ✅ INSTRUCTIONS_LOCAL_NEW_KEYS.md
 ✅ INSTRUCTIONS_PHASE_2.6.1_SCHEMA_AND_ADMIN.md
 ✅ INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
+🔄 INSTRUCTIONS_PHASE_2.6.3_AUTOMATED_SEEDING.md
 ⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md
 ⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md
 ⬜ INSTRUCTIONS_PHASE_2.6.6_DEVICE_CACHING.md

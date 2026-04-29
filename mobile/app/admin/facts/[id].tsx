@@ -35,6 +35,40 @@ type Distractor = {
   quality_score: number | null
 }
 
+type AutoSeedLog = {
+  id: string
+  outcome: string
+  failure_stage: string | null
+  failure_reason: string | null
+  cross_check_confidence: number | null
+  cross_check_reasoning: string | null
+  cross_check_supported: boolean | null
+  cross_check_model: string | null
+  citation_model: string | null
+  sources_attempted: number
+  sources_confirmed: number
+  distractors_attempted: boolean
+  distractors_succeeded: boolean
+  total_input_tokens: number
+  total_output_tokens: number
+  estimated_cost_usd: number | string
+  total_duration_ms: number
+  created_at: string
+}
+
+type AutoSeedSource = {
+  id: string
+  url: string
+  source_type: string
+  proposed_excerpt: string
+  verified_reachable: boolean
+  excerpt_match: boolean
+  http_status_code: number | null
+  fetch_error: string | null
+  fetch_duration_ms: number | null
+  inserted_into_fact_sources: boolean
+}
+
 export default function AdminFactDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { user } = useAuth()
@@ -42,6 +76,8 @@ export default function AdminFactDetailScreen() {
   const [fact, setFact] = useState<Fact | null>(null)
   const [sources, setSources] = useState<Source[]>([])
   const [distractors, setDistractors] = useState<Distractor[]>([])
+  const [autoSeedLog, setAutoSeedLog] = useState<AutoSeedLog | null>(null)
+  const [autoSeedSources, setAutoSeedSources] = useState<AutoSeedSource[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionBusy, setActionBusy] = useState<'approve' | 'reject' | null>(null)
@@ -51,12 +87,19 @@ export default function AdminFactDetailScreen() {
   const load = useCallback(async () => {
     if (!id) return
     setLoading(true)
-    const [factRes, sourcesRes, distractorsRes] = await Promise.all([
+    const [factRes, sourcesRes, distractorsRes, logRes] = await Promise.all([
       supabase.from('facts').select('id, fact_text, correct_answer, difficulty, verification_status, is_high_value, source_origin, category_id').eq('id', id).maybeSingle(),
       supabase.from('fact_sources').select('id, url, citation, excerpt, source_type, verified_reachable, human_confirmed, added_by_ai').eq('fact_id', id),
       supabase.from('distractors').select('id, distractor_text, authored_by, is_active, quality_score').eq('fact_id', id),
+      supabase
+        .from('fact_auto_seed_log')
+        .select('id, outcome, failure_stage, failure_reason, cross_check_confidence, cross_check_reasoning, cross_check_supported, cross_check_model, citation_model, sources_attempted, sources_confirmed, distractors_attempted, distractors_succeeded, total_input_tokens, total_output_tokens, estimated_cost_usd, total_duration_ms, created_at')
+        .eq('fact_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ])
-    const firstError = factRes.error || sourcesRes.error || distractorsRes.error
+    const firstError = factRes.error || sourcesRes.error || distractorsRes.error || logRes.error
     if (firstError) {
       setError(firstError.message)
       setLoading(false)
@@ -65,6 +108,22 @@ export default function AdminFactDetailScreen() {
     setFact((factRes.data as Fact | null) ?? null)
     setSources((sourcesRes.data as Source[]) ?? [])
     setDistractors((distractorsRes.data as Distractor[]) ?? [])
+    const log = (logRes.data as AutoSeedLog | null) ?? null
+    setAutoSeedLog(log)
+    if (log) {
+      const { data: src, error: srcErr } = await supabase
+        .from('fact_auto_seed_sources')
+        .select('id, url, source_type, proposed_excerpt, verified_reachable, excerpt_match, http_status_code, fetch_error, fetch_duration_ms, inserted_into_fact_sources')
+        .eq('auto_seed_log_id', log.id)
+      if (srcErr) {
+        setError(srcErr.message)
+        setLoading(false)
+        return
+      }
+      setAutoSeedSources((src as AutoSeedSource[]) ?? [])
+    } else {
+      setAutoSeedSources([])
+    }
     setLoading(false)
   }, [id])
 
@@ -176,6 +235,57 @@ export default function AdminFactDetailScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {autoSeedLog ? (
+        <View>
+          <Text style={styles.heading}>Auto-seed run</Text>
+          <View style={styles.card}>
+            <View style={styles.kvRow}><Text style={styles.kvKey}>Outcome</Text><Text style={styles.kvValue}>{autoSeedLog.outcome}</Text></View>
+            {autoSeedLog.cross_check_confidence !== null ? (
+              <View style={styles.kvRow}><Text style={styles.kvKey}>Confidence</Text><Text style={styles.kvValue}>{autoSeedLog.cross_check_confidence} / 5</Text></View>
+            ) : null}
+            {autoSeedLog.cross_check_supported !== null ? (
+              <View style={styles.kvRow}><Text style={styles.kvKey}>Supported</Text><Text style={styles.kvValue}>{autoSeedLog.cross_check_supported ? 'yes' : 'no'}</Text></View>
+            ) : null}
+            {autoSeedLog.failure_stage ? (
+              <View style={styles.kvRow}><Text style={styles.kvKey}>Failure stage</Text><Text style={styles.kvValue}>{autoSeedLog.failure_stage}</Text></View>
+            ) : null}
+            {autoSeedLog.failure_reason ? (
+              <View style={styles.kvRow}><Text style={styles.kvKey}>Failure reason</Text><Text style={styles.kvValue}>{autoSeedLog.failure_reason}</Text></View>
+            ) : null}
+            {autoSeedLog.cross_check_reasoning ? (
+              <Text style={styles.excerptText}>{autoSeedLog.cross_check_reasoning}</Text>
+            ) : null}
+            <View style={styles.kvRow}><Text style={styles.kvKey}>Citation model</Text><Text style={styles.kvValue}>{autoSeedLog.citation_model ?? '—'}</Text></View>
+            <View style={styles.kvRow}><Text style={styles.kvKey}>Cross-check model</Text><Text style={styles.kvValue}>{autoSeedLog.cross_check_model ?? '—'}</Text></View>
+            <View style={styles.kvRow}><Text style={styles.kvKey}>Tokens</Text><Text style={styles.kvValue}>{autoSeedLog.total_input_tokens} in / {autoSeedLog.total_output_tokens} out</Text></View>
+            <View style={styles.kvRow}><Text style={styles.kvKey}>Cost</Text><Text style={styles.kvValue}>${Number(autoSeedLog.estimated_cost_usd).toFixed(4)}</Text></View>
+            <View style={styles.kvRow}><Text style={styles.kvKey}>Duration</Text><Text style={styles.kvValue}>{autoSeedLog.total_duration_ms}ms</Text></View>
+            <View style={styles.kvRow}><Text style={styles.kvKey}>Run at</Text><Text style={styles.kvValue}>{new Date(autoSeedLog.created_at).toLocaleString()}</Text></View>
+          </View>
+
+          {autoSeedSources.length > 0 ? (
+            <View>
+              <Text style={styles.heading}>Proposed sources ({autoSeedSources.length})</Text>
+              {autoSeedSources.map((s) => (
+                <View key={s.id} style={styles.card}>
+                  <Text style={styles.urlText} numberOfLines={2}>{s.url}</Text>
+                  <Text style={styles.excerptText}>"{s.proposed_excerpt}"</Text>
+                  <View style={styles.pillRow}>
+                    <Pill label={s.source_type} />
+                    <Pill label={`reachable: ${s.verified_reachable ? 'yes' : 'no'}`} />
+                    <Pill label={`excerpt match: ${s.excerpt_match ? 'yes' : 'no'}`} />
+                    {s.http_status_code !== null ? <Pill label={`HTTP ${s.http_status_code}`} /> : null}
+                    {s.fetch_duration_ms !== null ? <Pill label={`${s.fetch_duration_ms}ms`} /> : null}
+                    <Pill label={s.inserted_into_fact_sources ? 'inserted' : 'not inserted'} />
+                  </View>
+                  {s.fetch_error ? <Text style={styles.errorBannerText}>fetch error: {s.fetch_error}</Text> : null}
+                </View>
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
       <Text style={styles.heading}>Sources ({sources.length})</Text>
       {sources.length === 0 ? (
