@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'npm:@supabase/supabase-js'
 import { mapOpenTdbCategory, isKnownOpenTdbCategory } from '../_shared/opentdb-category-map.ts'
+import { mapTriviaApiCategory, isKnownTriviaApiCategory, FALLBACK_SLUG } from '../_shared/trivia-api-category-map.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +17,32 @@ type OpenTdbRow = {
   correct_answer: string
   incorrect_answers: string[]
 }
+
+type TriviaApiRow = {
+  category: string
+  tags?: string[]
+  difficulty?: string
+  question: { text: string } | string
+  correctAnswer: string
+  incorrectAnswers: string[]
+}
+
+type SourceKind = 'opentdb' | 'trivia_api'
+type SourceOrigin = 'opentdb_import' | 'trivia_api_import'
+
+type NormalisedRow = {
+  slug: string
+  factText: string
+  correctAnswer: string
+  incorrectAnswers: string[]
+  difficulty: number
+  sourceOrigin: SourceOrigin
+}
+
+type AdaptResult =
+  | { kind: 'row'; row: NormalisedRow; unknownCategory: boolean }
+  | { kind: 'skip_non_multiple' }
+  | { kind: 'error'; message: string }
 
 const DIFFICULTY_MAP: Record<string, number> = { easy: 2, medium: 3, hard: 4 }
 
@@ -44,6 +71,68 @@ function decodeEntities(input: string): string {
   return s
 }
 
+function stripNbsp(s: string): string {
+  return s.replace(/ /g, ' ').trim()
+}
+
+function adaptOpenTdb(row: OpenTdbRow): AdaptResult {
+  if (row.type !== 'multiple') return { kind: 'skip_non_multiple' }
+  const unknownCategory = !isKnownOpenTdbCategory(row.category)
+  const slug = mapOpenTdbCategory(row.category)
+  const difficulty = DIFFICULTY_MAP[row.difficulty] ?? 3
+  const factText = decodeEntities(row.question)
+  const correctAnswer = decodeEntities(row.correct_answer)
+  const incorrectAnswers = (row.incorrect_answers || []).map(decodeEntities)
+  return {
+    kind: 'row',
+    unknownCategory,
+    row: {
+      slug,
+      factText,
+      correctAnswer,
+      incorrectAnswers,
+      difficulty,
+      sourceOrigin: 'opentdb_import',
+    },
+  }
+}
+
+function adaptTriviaApi(row: TriviaApiRow): AdaptResult {
+  let questionText: string
+  if (typeof row.question === 'string') {
+    questionText = row.question
+  } else if (row.question && typeof row.question === 'object' && typeof row.question.text === 'string') {
+    questionText = row.question.text
+  } else {
+    return { kind: 'error', message: 'Trivia API row missing question text' }
+  }
+  const tags = Array.isArray(row.tags) ? row.tags : []
+  const slug = mapTriviaApiCategory(row.category, tags)
+  // Unknown-category counter: only count when the slug fell through to the
+  // fallback AND the category is not one of the two known fallback cases
+  // ("General Knowledge", "Food & Drink"), to avoid double-counting expected
+  // fall-throughs as unknown.
+  const unknownCategory =
+    slug === FALLBACK_SLUG &&
+    !isKnownTriviaApiCategory(row.category)
+  const difficulty = DIFFICULTY_MAP[row.difficulty ?? ''] ?? 3
+  const factText = decodeEntities(stripNbsp(questionText))
+  const correctAnswer = decodeEntities(stripNbsp(row.correctAnswer ?? ''))
+  const incorrectAnswers = (row.incorrectAnswers || []).map((s) => decodeEntities(stripNbsp(s)))
+  return {
+    kind: 'row',
+    unknownCategory,
+    row: {
+      slug,
+      factText,
+      correctAnswer,
+      incorrectAnswers,
+      difficulty,
+      sourceOrigin: 'trivia_api_import',
+    },
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -65,15 +154,26 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Forbidden: admin role required' }), { status: 403, headers: jsonHeaders })
   }
 
-  let body: { results?: OpenTdbRow[] }
+  let body: unknown
   try {
     body = await req.json()
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: jsonHeaders })
   }
-  const rows = body?.results
-  if (!Array.isArray(rows)) {
-    return new Response(JSON.stringify({ error: 'Body must contain a results array' }), { status: 400, headers: jsonHeaders })
+
+  let source: SourceKind
+  let rows: unknown[]
+  if (Array.isArray(body)) {
+    source = 'trivia_api'
+    rows = body
+  } else if (body && typeof body === 'object' && Array.isArray((body as { results?: unknown }).results)) {
+    source = 'opentdb'
+    rows = (body as { results: unknown[] }).results
+  } else {
+    return new Response(
+      JSON.stringify({ error: 'Body must be either { results: [...] } (OpenTrivia DB) or [...] (Trivia API)' }),
+      { status: 400, headers: jsonHeaders },
+    )
   }
 
   const service = createClient(
@@ -94,39 +194,45 @@ serve(async (req) => {
   let skipped_unknown_category = 0
   let failed = 0
   const errors: Array<{ row_index: number; message: string }> = []
+  const imported_ids: string[] = []
 
   for (let i = 0; i < rows.length; i++) {
-    const row = rows[i]
+    const raw = rows[i]
     try {
-      if (row.type !== 'multiple') {
+      const adapted: AdaptResult = source === 'opentdb'
+        ? adaptOpenTdb(raw as OpenTdbRow)
+        : adaptTriviaApi(raw as TriviaApiRow)
+
+      if (adapted.kind === 'skip_non_multiple') {
         skipped_non_multiple++
         continue
       }
-      if (!isKnownOpenTdbCategory(row.category)) {
-        skipped_unknown_category++
-      }
-      const slug = mapOpenTdbCategory(row.category)
-      const categoryId = slugToId.get(slug)
-      if (!categoryId) {
+      if (adapted.kind === 'error') {
         failed++
-        errors.push({ row_index: i, message: `No category row for slug ${slug}` })
+        errors.push({ row_index: i, message: adapted.message })
         continue
       }
-      const difficulty = DIFFICULTY_MAP[row.difficulty] ?? 3
-      const factText = decodeEntities(row.question)
-      const correct = decodeEntities(row.correct_answer)
-      const wrongs = (row.incorrect_answers || []).map(decodeEntities)
+
+      const { row, unknownCategory } = adapted
+      if (unknownCategory) skipped_unknown_category++
+
+      const categoryId = slugToId.get(row.slug)
+      if (!categoryId) {
+        failed++
+        errors.push({ row_index: i, message: `No category row for slug ${row.slug}` })
+        continue
+      }
 
       const { data: factInsert, error: factErr } = await service
         .from('facts')
         .insert({
           category_id: categoryId,
-          fact_text: factText,
-          correct_answer: correct,
-          difficulty,
+          fact_text: row.factText,
+          correct_answer: row.correctAnswer,
+          difficulty: row.difficulty,
           is_high_value: false,
           verification_status: 'pending',
-          source_origin: 'opentdb_import',
+          source_origin: row.sourceOrigin,
           created_by: user.id,
         })
         .select('id')
@@ -138,7 +244,7 @@ serve(async (req) => {
         continue
       }
 
-      const distractorRows = wrongs.map((text) => ({
+      const distractorRows = row.incorrectAnswers.map((text) => ({
         fact_id: factInsert.id,
         distractor_text: text,
         authored_by: 'imported',
@@ -153,6 +259,7 @@ serve(async (req) => {
         }
       }
       imported++
+      imported_ids.push(factInsert.id as string)
     } catch (err) {
       failed++
       errors.push({ row_index: i, message: String((err as Error)?.message ?? err) })
@@ -160,7 +267,7 @@ serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ imported, skipped_non_multiple, skipped_unknown_category, failed, errors }),
+    JSON.stringify({ source, imported, imported_ids, skipped_non_multiple, skipped_unknown_category, failed, errors }),
     { status: 200, headers: jsonHeaders },
   )
 })

@@ -5,7 +5,9 @@ import { supabase } from '../../../lib/supabase'
 import { colors, radius, spacing } from '../../../lib/theme'
 
 type ImportResult = {
+  source: 'opentdb' | 'trivia_api'
   imported: number
+  imported_ids: string[]
   skipped_non_multiple: number
   skipped_unknown_category: number
   failed: number
@@ -24,21 +26,26 @@ export default function AdminFactsImportScreen() {
     setParseError(null)
     setServerError(null)
     setResult(null)
-    let parsed: { results?: unknown }
+    let parsed: unknown
     try {
       parsed = JSON.parse(text)
     } catch (err) {
       setParseError(`Invalid JSON: ${(err as Error).message}`)
       return
     }
-    if (!parsed || !Array.isArray((parsed as { results?: unknown }).results)) {
-      setParseError('Expected JSON with a top-level "results" array (OpenTrivia DB shape)')
+    const isTriviaApi = Array.isArray(parsed)
+    const isOpenTdb =
+      !!parsed &&
+      typeof parsed === 'object' &&
+      Array.isArray((parsed as { results?: unknown }).results)
+    if (!isTriviaApi && !isOpenTdb) {
+      setParseError('Expected an array (Trivia API) or { results: [...] } (OpenTrivia DB)')
       return
     }
     setBusy(true)
     try {
       const { data, error } = await supabase.functions.invoke<ImportResult>('fact-bank-import', {
-        body: parsed,
+        body: parsed as unknown[] | Record<string, unknown>,
       })
       if (error) {
         setServerError(error.message)
@@ -54,8 +61,7 @@ export default function AdminFactsImportScreen() {
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       <Text style={styles.heading}>Import OpenTrivia DB JSON</Text>
       <Text style={styles.body}>
-        Paste the full {`{ results: [...] }`} response from
-        https://opentdb.com/api.php?amount=N&type=multiple. Facts land in pending state.
+        Paste either an OpenTrivia DB response ({`{ results: [...] }`}) or a Trivia API response ([...]). Auto-detected.
       </Text>
 
       <TextInput
@@ -83,6 +89,10 @@ export default function AdminFactsImportScreen() {
       {result ? (
         <View style={styles.resultBox}>
           <Text style={styles.resultHeading}>Import result</Text>
+          <View style={styles.resultRow}>
+            <Text style={styles.resultLabel}>Source</Text>
+            <Text style={styles.resultValue}>{result.source}</Text>
+          </View>
           <ResultRow label="Imported" value={result.imported} accent={colors.success} />
           <ResultRow label="Skipped (non-multiple)" value={result.skipped_non_multiple} />
           <ResultRow label="Skipped (unknown category, fell back to general)" value={result.skipped_unknown_category} />
