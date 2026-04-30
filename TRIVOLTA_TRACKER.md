@@ -123,12 +123,15 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 
 **Beta-verification posture (decided 2026-04-29):** AI-verifies-AI cross-check is parked. Two reasons surfaced during 2.6.3a manual testing: (1) the mechanical excerpt-match check fails on most authoritative sources — Wikipedia is JS-rendered (excerpts not in raw HTML), CIA World Factbook is deprecated (302 → farewell page), Britannica is the only reliably matching source; and (2) the cross-check itself was never validated end-to-end because the Paris/Berlin smoke test bailed at `failure_stage: mechanical_check` before the cross-check fired. Beta will ship with possibly-imperfect facts; the `fact_reports` table is the real verification mechanism via player feedback. The 2.6.8 verification gate is informational-only for beta, not a hard blocker.
 
+**Beta data source (decided 2026-04-29):** ~3,976 facts from The Trivia API populated locally via 2.6.3e. Distributed across 10 Trivolta slugs (general 663, pop-culture 454, music 446, history 424, science 419, film 418, literature 404, geography 381, sports 291, art 76). Imported as `pending`; visible to dev/Simulator gameplay because the verification gate is prod-only. Re-runnable on any fresh `dev-reset`.
+
 ✅ Phase 2.6.1 — Schema + admin tooling shell — INSTRUCTIONS_PHASE_2.6.1_SCHEMA_AND_ADMIN.md
 ✅ Phase 2.6.2 — Import + AI source citation — INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
 ✅ Phase 2.6.3a — Automated seeding tooling — INSTRUCTIONS_PHASE_2.6.3_AUTOMATED_SEEDING.md
 ⏸ Phase 2.6.3b — Calibration + curation — parked alongside cross-check (see beta-verification posture above). Steps below kept for post-beta revisit.
 ⏸ Phase 2.6.3c — Category source registry — parked pending post-beta revisit. INSTRUCTIONS file exists on disk but not handed to Claude Code.
 ✅ Phase 2.6.3d — The Trivia API as second import source — INSTRUCTIONS_PHASE_2.6.3d_TRIVIA_API_IMPORT.md (auto-detects OpenTrivia DB vs Trivia API shape; tag-level disambiguation; nbsp stripping; `imported_ids` + `source` in response)
+✅ Phase 2.6.3e — Bulk Trivia API seed + per-category dedupe — INSTRUCTIONS_PHASE_2.6.3e_BULK_TRIVIA_API_SEED.md (`skipped_duplicate` counter on importer; `mobile/seed-trivia-api.sh` reusing `dev-reset.sh` admin; 3,976 facts imported across 10 slugs in 63s)
 ⬜ Phase 2.6.4 — Render + Compose Edge Functions — INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md
 ⬜ Phase 2.6.5 — Mobile integration + cutover — INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md
 ⬜ Phase 2.6.6 — On-device caching (MMKV) — INSTRUCTIONS_PHASE_2.6.6_DEVICE_CACHING.md
@@ -171,6 +174,7 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 ⬜ Manual seeding verification — sample 20 auto-verified facts across categories, confirm correctness before opening beta
 ⬜ run_tests.sh exit-code masking — when no simulator is booted, the tee pipe masks maestro's exit code and the script reports green. Folded into Phase 2.6.7.
 ⬜ Wikipedia excerpt-match calibration — measure miss rate across categories; consider switching to flatter HTML sources (CIA Factbook, IMDB structured pages, .gov sites) where Wikipedia consistently fails
+⬜ Top up `art` slug coverage — currently only 76 facts vs ~400 in other slugs because The Trivia API's `arts_and_literature` category skews heavily literary at the tag level. Either re-run more `arts_and_literature` batches and accept that most go to `literature`, or import a focused art-only dataset from another source.
 
 ---
 
@@ -216,6 +220,9 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 - **lobby/results play-again not fully tested** — test_26 verifies navigation to `/lobby/create` only; does not verify that the full subsequent create-lobby flow completes successfully.
 - **AI source-citation excerpt-match misses on dynamically rendered pages** — Wikipedia and similar JS-rendered sites sometimes return raw HTML where the AI's quoted excerpt is not a substring. The mechanical check correctly flags these as failed. Combined with CIA Factbook deprecation (302 → farewell page), the only reliably matching authoritative source is Britannica. Not a code defect — working as designed. Drove the 2.6.3b/c/cross-check parking decision.
 - **AI cross-check unvalidated** — the cross-check pass in `fact-bank-auto-seed` was never observed firing end-to-end because the mechanical-check gate failed first on every smoke-test fact. The architecture may be correct or may be broken; we don't know. Parked alongside 2.6.3b. Beta relies on `fact_reports` instead.
+- **Fact correctness not spot-checked** — the 3,976 Trivia API facts have not been manually validated. The Trivia API has a fact_reports / community curation reputation but no Trivolta-side QA has been done. iPhone testing may surface incorrect answers; the player-feedback `fact_reports` table is the recovery mechanism, not pre-import validation.
+- **Dev gameplay sees `pending` facts** — the verification gate is prod-only, so any garbage imported into local DB is immediately playable. If you import junk for testing, `dev-reset.sh` is the cheapest cleanup.
+- **`art` slug under-represented** — 76 facts vs ~400 in other slugs. The Trivia API's `arts_and_literature` tag distribution skews literary. Worth knowing if `art` category gameplay feels thin during iPhone testing. Folded into Pre-Beta Checklist.
 - **`Alert.alert` is iOS-only on React Native Web** — sign-out from /(tabs)/profile silently no-ops on Expo Web because Alert.alert isn't supported there. Workaround during admin work: clear localStorage + reload. Permanent fix folded into Phase 2.6.7. New admin code is required to use `window.confirm()` or custom modals instead.
 - **`run_tests.sh` exit-code masking** — when run without a booted iOS Simulator, the `tee` pipe masks `maestro test`'s non-zero exit code and the script reports "25 passed". Folded into Phase 2.6.7. Until then, always confirm a simulator is booted before trusting a green result.
 
@@ -248,6 +255,7 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 ✅ INSTRUCTIONS_PHASE_2.6.3_AUTOMATED_SEEDING.md
 ⏸ INSTRUCTIONS_PHASE_2.6.3c_CATEGORY_SOURCE_REGISTRY.md (parked — written but not handed to Claude Code)
 ✅ INSTRUCTIONS_PHASE_2.6.3d_TRIVIA_API_IMPORT.md
+✅ INSTRUCTIONS_PHASE_2.6.3e_BULK_TRIVIA_API_SEED.md
 ⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md
 ⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md
 ⬜ INSTRUCTIONS_PHASE_2.6.6_DEVICE_CACHING.md
