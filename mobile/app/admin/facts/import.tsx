@@ -9,6 +9,7 @@ type ImportResult = {
   imported: number
   imported_ids: string[]
   skipped_non_multiple: number
+  skipped_duplicate: number
   skipped_unknown_category: number
   failed: number
   errors: Array<{ row_index: number; message: string }>
@@ -95,6 +96,7 @@ export default function AdminFactsImportScreen() {
           </View>
           <ResultRow label="Imported" value={result.imported} accent={colors.success} />
           <ResultRow label="Skipped (non-multiple)" value={result.skipped_non_multiple} />
+          <ResultRow label="Skipped (duplicate)" value={result.skipped_duplicate} />
           <ResultRow label="Skipped (unknown category, fell back to general)" value={result.skipped_unknown_category} />
           <ResultRow label="Failed" value={result.failed} accent={result.failed > 0 ? colors.danger : undefined} />
           {result.errors.length > 0 ? (

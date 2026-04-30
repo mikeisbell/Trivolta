@@ -192,9 +192,15 @@ serve(async (req) => {
   let imported = 0
   let skipped_non_multiple = 0
   let skipped_unknown_category = 0
+  let skipped_duplicate = 0
   let failed = 0
   const errors: Array<{ row_index: number; message: string }> = []
   const imported_ids: string[] = []
+
+  // Per-category fact_text Set: existing DB rows + texts inserted in this batch.
+  // Lazily populated the first time we encounter a categoryId — at most one
+  // `select fact_text from facts where category_id = $1` per category per batch.
+  const factTextsByCategory = new Map<string, Set<string>>()
 
   for (let i = 0; i < rows.length; i++) {
     const raw = rows[i]
@@ -220,6 +226,26 @@ serve(async (req) => {
       if (!categoryId) {
         failed++
         errors.push({ row_index: i, message: `No category row for slug ${row.slug}` })
+        continue
+      }
+
+      let knownTexts = factTextsByCategory.get(categoryId)
+      if (!knownTexts) {
+        const { data: existing, error: existingErr } = await service
+          .from('facts')
+          .select('fact_text')
+          .eq('category_id', categoryId)
+        if (existingErr) {
+          failed++
+          errors.push({ row_index: i, message: `failed to load existing facts: ${existingErr.message}` })
+          continue
+        }
+        knownTexts = new Set((existing ?? []).map((r) => r.fact_text as string))
+        factTextsByCategory.set(categoryId, knownTexts)
+      }
+
+      if (knownTexts.has(row.factText)) {
+        skipped_duplicate++
         continue
       }
 
@@ -260,6 +286,7 @@ serve(async (req) => {
       }
       imported++
       imported_ids.push(factInsert.id as string)
+      knownTexts.add(row.factText)
     } catch (err) {
       failed++
       errors.push({ row_index: i, message: String((err as Error)?.message ?? err) })
@@ -267,7 +294,7 @@ serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ source, imported, imported_ids, skipped_non_multiple, skipped_unknown_category, failed, errors }),
+    JSON.stringify({ source, imported, imported_ids, skipped_non_multiple, skipped_duplicate, skipped_unknown_category, failed, errors }),
     { status: 200, headers: jsonHeaders },
   )
 })
