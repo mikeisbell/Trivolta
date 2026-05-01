@@ -87,15 +87,16 @@
 ✅ test_24 — back navigation mid-game + results home
 ✅ test_25 — join lobby error flow
 ✅ test_26 — lobby results navigation (home + play-again navigation only)
+✅ test_27 — feedback submit (FAB → modal → submit → toast)
 
 All active tests are self-contained — each guarantees its own test user via ensure_test_user_02.js.
 Single run passes after supabase db reset. No warm-up run required.
 
 ### Test Backlog (Tier 3 — deferred, not blocking beta)
-⬜ test_27 — lobby game timer expiry (requires 25s wait in lobby context)
-⬜ test_28 — profile achievement unlock assertions (requires seeding specific stats)
-⬜ test_29 — leaderboard current user highlighted (requires seeding top-10 position)
-⬜ test_30 — join full lobby rejected (requires seeding 8 players)
+⬜ test_28 — lobby game timer expiry (requires 25s wait in lobby context)
+⬜ test_29 — profile achievement unlock assertions (requires seeding specific stats)
+⬜ test_30 — leaderboard current user highlighted (requires seeding top-10 position)
+⬜ test_31 — join full lobby rejected (requires seeding 8 players)
 
 ### Edge Case Coverage (deferred — not blocking beta)
 ⬜ Network failure during question fetch — retry UI (test_18 non-automatable)
@@ -162,8 +163,9 @@ The goal of this work is not to add gameplay surface — it is to make beta prod
 
 Independent of each other and of all later tranches. Ship before Tranche 2.
 
-⬜ **F1. Distractor regeneration across imported corpus** — run existing distractor pipeline against all 3,976 facts, replace Trivia API distractors with ambiguity-scored AI-generated ones, spot-check 20 samples. Depends on: nothing.
-⬜ **F2. In-app feedback channel** — `feedback_reports` table (user, screen, state snapshot, free text, timestamp), persistent feedback button on every screen. Every feature shipped after this gets feedback capture for free. Depends on: nothing.
+✅ **F1. Distractor regeneration across imported corpus** — ran distractor pipeline across all 3,976 facts. 2,838 facts regenerated, 1,128 unchanged (validation_failed bucket retained imported distractors), 0 errors. Actual cost ~$18.6. Quality data in `F1_QUALITY_DATA.txt`. **Open follow-up:** 28% of facts hit `validation_failed` because Haiku could not generate replacements scoring below the strict ambiguity threshold; the imported (often weak) distractors survived only by default. Threshold relaxation experiment captured as F1a (on hold).
+⏸ **F1a. Validator threshold relaxation experiment** — ON HOLD. Mike to review closely at a later time and decide when/if to add back to roadmap. Context: 28% of F1 facts (1,128 / 3,976) hit `validation_failed` and kept imported distractors. Proposed experiment: relaxed ambiguity threshold (e.g. score ≤4 instead of ≤3, or 2-of-3 passing) on a 50-fact sample, compare to imported baseline, decide whether to re-run F1. Cost estimate: ~$1 for the sample. Does NOT block F2, F3, F4, or any downstream work.
+✅ **F2. In-app feedback channel** — `feedback_reports` table + `submit-feedback` Edge Function + persistent FAB on every authenticated screen + `/admin/feedback` triage screen + Maestro test_27. Every feature shipped after this gets feedback capture for free. Depends on: nothing.
 ⬜ **F3. Manual fact spot-check** — click through 50 random facts across all 10 categories, log incorrect answers in `fact_reports`. Gate before any external tester sees the app. Depends on: nothing.
 
 ### Tranche 2 — Question Rendering Layer
@@ -340,8 +342,8 @@ See Phase 2.9 Tranche 8 for release-gate items.
 
 ### Phase 2.9 — Pre-Beta Feature Roadmap (to be written as needed)
 
-⬜ INSTRUCTIONS_F1_DISTRACTOR_REGEN.md
-⬜ INSTRUCTIONS_F2_FEEDBACK_CHANNEL.md
+✅ INSTRUCTIONS_F1_DISTRACTOR_REGEN.md
+✅ INSTRUCTIONS_F2_FEEDBACK_CHANNEL.md
 ⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md (covers F4 + F5; already on disk)
 ⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md (covers F6)
 ⬜ INSTRUCTIONS_F7_SHARED_DAILY_CHALLENGE.md

@@ -1,0 +1,64 @@
+appId: com.mikeisbell.trivolta
+env:
+  SUPABASE_URL: ${SUPABASE_URL}
+  SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+---
+# test_27: Feedback FAB → modal → submit → toast
+# Depends on test_02 having created testuser_maestro_02@trivolta-test.com.
+
+- clearState
+- launchApp:
+    clearState: true
+
+- runScript:
+    file: ./scripts/ensure_test_user_02.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+
+- assertVisible:
+    id: "auth-email-input"
+
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_02@trivolta-test.com"
+
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+
+- tapOn:
+    id: "auth-submit-button"
+
+- tapOn:
+    text: "Not Now"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+- assertVisible:
+    id: "feedback-fab"
+
+- tapOn:
+    id: "feedback-fab"
+
+- assertVisible:
+    id: "feedback-body-input"
+
+- tapOn:
+    id: "feedback-body-input"
+- inputText: "Maestro test feedback"
+
+- tapOn:
+    id: "feedback-send"
+
+- extendedWaitUntil:
+    visible:
+      id: "feedback-toast"
+    timeout: 5000
+
+- assertNotVisible:
+    id: "feedback-body-input"

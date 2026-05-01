@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Stack, useRouter, useSegments } from 'expo-router'
 import { AuthProvider, useAuth } from '../lib/auth'
+import { FeedbackProvider } from '../components/FeedbackFAB'
 
 function RootLayoutNav() {
   const { session, loading } = useAuth()
@@ -38,7 +39,9 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <FeedbackProvider>
+        <RootLayoutNav />
+      </FeedbackProvider>
     </AuthProvider>
   )
 }

@@ -45,6 +45,7 @@ export default function AdminLayout() {
       <Stack.Screen name="sources/cite" options={{ title: 'Source Citation' }} />
       <Stack.Screen name="distractors/generate" options={{ title: 'Distractor Generation' }} />
       <Stack.Screen name="reports/index" options={{ title: 'Reports' }} />
+      <Stack.Screen name="feedback/index" options={{ title: 'Feedback' }} />
       <Stack.Screen name="coverage/index" options={{ title: 'Coverage' }} />
       <Stack.Screen name="telemetry" options={{ title: 'Telemetry' }} />
     </Stack>

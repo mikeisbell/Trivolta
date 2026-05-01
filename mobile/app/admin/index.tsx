@@ -26,6 +26,7 @@ const NAV_LINKS: Array<{ label: string; href: string; description: string }> = [
   { label: 'Source citation', href: '/admin/sources/cite', description: 'Manual AI-assisted citing' },
   { label: 'Distractor generation', href: '/admin/distractors/generate', description: 'Manual bulk distractors' },
   { label: 'Reports', href: '/admin/reports', description: 'Player-reported issues' },
+  { label: 'Feedback', href: '/admin/feedback', description: 'User-submitted feedback from in-app FAB' },
   { label: 'Coverage', href: '/admin/coverage', description: 'Per-category progress to target' },
   { label: 'Telemetry', href: '/admin/telemetry', description: 'Auto-seed pipeline forensics' },
 ]

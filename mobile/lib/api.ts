@@ -255,6 +255,21 @@ export type LobbyPlayerResult = {
   isCurrentUser: boolean
 }
 
+export type FeedbackPayload = {
+  screen: string
+  route_path?: string | null
+  platform: 'ios' | 'android' | 'web'
+  app_version?: string | null
+  state_snapshot?: Record<string, unknown>
+  body: string
+}
+
+export async function submitFeedback(payload: FeedbackPayload): Promise<{ ok: true; id: string }> {
+  const res = await callFunction('submit-feedback', payload)
+  if (!res.ok) throw new Error(`submit-feedback failed: ${res.status}`)
+  return res.json()
+}
+
 export async function fetchDailyChallenge(): Promise<DailyChallenge | null> {
   try {
     const res = await callFunction('daily-challenge', {})
