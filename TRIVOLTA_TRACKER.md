@@ -155,6 +155,14 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 
 ---
 
+## Workflow infrastructure
+
+Cross-cutting tooling — applies to every commit on every phase, not phase-bound.
+
+✅ Automated code review phase — INSTRUCTIONS_AUTOMATED_REVIEW.md (`reviews/`, `run-review.sh`, `simplify-and-verify.sh`, `simplify-verify.cmds`)
+
+---
+
 ## Phase 2.9 — Pre-Beta Feature Roadmap
 
 Feature scope expansion ahead of beta, decided after the differentiation discussion (see TRIVOLTA_DIFFERENTIATION.md). Ordered by tranche; tranches are dependency-bounded, not time-bounded. Within a tranche, features can ship in any order unless otherwise noted.
@@ -374,7 +382,7 @@ See Phase 2.9 Tranche 8 for release-gate items.
 ✅ INSTRUCTIONS_F1_DISTRACTOR_REGEN.md
 ✅ INSTRUCTIONS_F2_FEEDBACK_CHANNEL.md
 ✅ INSTRUCTIONS_F3_FACT_SPOT_CHECK.md
-⬜ INSTRUCTIONS_AUTOMATED_REVIEW.md
+✅ INSTRUCTIONS_AUTOMATED_REVIEW.md
 ⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md (covers F4 + F5; already on disk)
 ⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md (covers F6)
 ⬜ INSTRUCTIONS_F7_SHARED_DAILY_CHALLENGE.md

@@ -162,6 +162,18 @@ The generated `ios/` directory is gitignored — this command must be re-run aft
 
 Always run the full Maestro suite after any change — all tests must pass before reporting done. Never pipe test output through `| tail -N` — it can truncate critical failure details. When a test fails, read the full debug output before attempting a fix. Do not guess at root cause.
 
+## Code Review Phase
+
+Every commit on a development task gets two automated passes after the implementer's normal verification suite passes: `bash simplify-and-verify.sh` (quality / `/simplify`) and `bash run-review.sh <commit-sha> <INSTRUCTIONS path>` (conformance review). Both are mandatory and run via the wrapper scripts; do not invoke `claude /simplify` or `claude -p` directly.
+
+The `reviews/` directory is owned by the conformance review subprocess. The implementer Claude Code session never edits files under `reviews/` except via `run-review.sh`. `simplify-log.md` files are owned by `simplify-and-verify.sh`. Hand-edits break the audit trail.
+
+When `run-review.sh` exits with code 2 (`request_changes`), the implementer must fix the blocker findings, commit the fix, and re-run both scripts on the new commit BEFORE returning control to Mike. The session does not end on a `request_changes` verdict.
+
+When `simplify-and-verify.sh` reverts a simplification because verification broke, that is correct behavior — do NOT debug or "fix" the verification suite to make `/simplify`'s changes pass. Verification is the gate; `/simplify` is advisory.
+
+The `claude -p` reviewer subprocess has no access to the implementer session's chat history. It sees only the prompt template plus the diff, the matching INSTRUCTIONS file, CLAUDE.md, and the four-criteria excerpt from WORKFLOW.md. This isolation is intentional. Do not bypass it by piping anything else into the subprocess.
+
 ## Root Cause Before Fix
 
 For any failing test or bug, investigate actual root cause before writing a fix. Do not assume the test assertion is wrong — check the implementation first. State the diagnosed root cause in the response before making any file changes.

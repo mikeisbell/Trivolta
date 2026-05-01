@@ -79,8 +79,18 @@ What Claude Code must NOT do. Be explicit.
 Numbered implementation steps with exact file paths.
 
 ## Verification
+
 Exact commands to run. Do not report success until all pass.
+
+After all verification passes, the implementer ALWAYS runs, in order:
+
+    bash simplify-and-verify.sh
+    bash run-review.sh "$(git rev-parse HEAD)" <path to this INSTRUCTIONS file>
+
+The implementer does not return control to Mike until run-review.sh exits 0.
 ```
+
+The two-script tail is mandatory in every future INSTRUCTIONS file's Verification section.
 
 ### File location & naming
 
@@ -101,6 +111,40 @@ Mac Claude checks every `git diff HEAD > ~/trivolta_diff.txt` against:
 4. **CLAUDE.md additions justified** — new entries pass the "not in code, wrong decision if absent" test?
 
 Do not commit until all four pass.
+
+---
+
+## Code Review Phase
+
+There are now two reviews on every task. Mac Claude does the human four-criteria diff review (above). A `claude -p` subprocess does an automated conformance review using the same four criteria as a structural backbone. They catch different things — the human review catches design and intent issues; the subprocess catches mechanical spec drift, missing verifiable-objective items, and constraint violations.
+
+The subprocess is wrapped by two repo-root scripts:
+
+1. After the implementer commits and the verification suite passes, the implementer runs `bash simplify-and-verify.sh`. This invokes `claude /simplify`, re-runs the verification commands listed in `simplify-verify.cmds`, commits the simplifications as `chore: /simplify — <short-sha>` if they survive, and reverts to the pre-simplify HEAD if they don't.
+2. The implementer then runs `bash run-review.sh <commit-sha> <INSTRUCTIONS path>` (use the literal string `none` for ad-hoc commits with no spec). This produces `reviews/<commit-sha>.md` with structured YAML front matter and body sections.
+3. If `run-review.sh` exits 2 (`request_changes`), the implementer addresses the blocker findings, commits the fix, and re-runs **both** scripts against the new commit.
+4. Once `run-review.sh` exits 0, control returns to Mike. The `reviews/<sha>.md` artifact stays on disk as the audit trail; Mac Claude reads it next session as the most recent ground-truth on what the previous diff did or didn't get right.
+
+Schema and prompt details: see `reviews/README.md`.
+
+### Exit codes for `run-review.sh`
+
+| Verdict             | Exit | Meaning                                          |
+|---------------------|-----:|--------------------------------------------------|
+| `approve`           |    0 | No findings.                                     |
+| `comment`           |    0 | Findings exist but none are blockers.            |
+| `request_changes`   |    2 | At least one `[blocker]`. Implementer must fix.  |
+| (missing/malformed) |    3 | Manual inspection required.                      |
+
+`simplify-and-verify.sh` always exits 0 unless there is a pre-flight error (uncommitted changes, missing tooling). A revert after verification breakage is correct behavior, not a script failure.
+
+### Mac Claude — Pre-task Review File Gate
+
+Before writing any new INSTRUCTIONS file, Mac Claude verifies that the most recent commit on the current branch already has a corresponding `reviews/<sha>.md` file with verdict ≠ `request_changes`.
+
+Mechanic: list `reviews/`, find the file matching `git log -1 --format=%H` on the current branch, read its YAML front matter. If the file is missing or the verdict is `request_changes`, Mac Claude refuses the new task and tells Mike the previous review must be cleared first.
+
+This is the trust mitigation for an honor-system pipeline.
 
 ---
 

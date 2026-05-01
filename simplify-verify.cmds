@@ -1,0 +1,6 @@
+# Verification commands run by simplify-and-verify.sh after /simplify.
+# One bash command per line. Lines starting with `#` and blank lines are
+# skipped. Each line is invoked with `bash -c "<line>"` from the repo root.
+# The first non-zero exit code aborts the verification run.
+cd mobile && npx tsc --noEmit
+cd mobile && ./run_tests.sh
