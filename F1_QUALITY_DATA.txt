@@ -1,0 +1,142 @@
+Pager usage is off.
+=== QUERY 1: Quality score distribution (active ai-cached) ===
+ quality_score | rows | facts 
+---------------+------+-------
+             3 | 6099 |  2033
+             4 | 2445 |   815
+(2 rows)
+
+
+=== QUERY 2: Pre/post distractor row totals reconciliation ===
+ authored_by | is_active | count 
+-------------+-----------+-------
+ ai-cached   | t         |  8544
+ imported    | f         |  8544
+ imported    | t         |  3384
+(3 rows)
+
+
+=== QUERY 3: Distractor text length comparison ===
+ authored_by |  n   | avg_len | min_len | max_len | stddev_len 
+-------------+------+---------+---------+---------+------------
+ ai-cached   | 8544 |   13.14 |       1 |     168 |      12.95
+ imported    | 8544 |   12.05 |       1 |     206 |      10.65
+(2 rows)
+
+
+=== QUERY 4: Pairwise text overlap (deactivated-imported vs active-ai-cached on same fact_id) ===
+ total_pairs | exact_dupes_ci | substring_overlap_ci | shared_3_leading_ci 
+-------------+----------------+----------------------+---------------------
+       25632 |           1343 |                  153 |                3433
+(1 row)
+
+
+=== QUERY 5: 10 random regenerated facts (imported vs ai-cached side-by-side) ===
+Expanded display is on.
+-[ RECORD 1 ]-------------+-----------------------------------------------------------------------------------------------------------------------------
+fact_text                 | What is the word for a group of bucks?
+correct_answer            | A brace
+imported_distractors_old  | A murder | A nye | A shoal
+ai_cached_distractors_new | A cluster | A herd | A pod
+quality_score             | 3
+-[ RECORD 2 ]-------------+-----------------------------------------------------------------------------------------------------------------------------
+fact_text                 | Which American rock band released the studio album 'A Thousand Suns'?
+correct_answer            | Linkin Park
+imported_distractors_old  | Alice in Chains | Hollywood Undead | System of a Down
+ai_cached_distractors_new | Nine Inch Nails | The Smashing Pumpkins | Thirty Seconds to Mars
+quality_score             | 3
+-[ RECORD 3 ]-------------+-----------------------------------------------------------------------------------------------------------------------------
+fact_text                 | Which author wrote 'Twelfth Night'?
+correct_answer            | William Shakespeare
+imported_distractors_old  | Arthur C. Clarke | Enid Blyton | Isaac Newton
+ai_cached_distractors_new | Ben Jonson | Christopher Marlowe | John Webster
+quality_score             | 3
+-[ RECORD 4 ]-------------+-----------------------------------------------------------------------------------------------------------------------------
+fact_text                 | What is the name of the ancient stone tablet that was carved in 196 B.C., and helped scholars decipher Egyptian hieroglyphs?
+correct_answer            | The Rosetta Stone
+imported_distractors_old  | The Cornerstone | The Philosopher's Stone | The Stone of Destiny
+ai_cached_distractors_new | The Decree Stone of Memphis | The Hieroglyphic Tablet of Alexandria | The Ptolemaic Stone
+quality_score             | 3
+-[ RECORD 5 ]-------------+-----------------------------------------------------------------------------------------------------------------------------
+fact_text                 | Which American rock band released the studio album 'One Hot Minute'?
+correct_answer            | Red Hot Chili Peppers
+imported_distractors_old  | Black Flag | Journey | The Monkees
+ai_cached_distractors_new | Jane's Addiction | Soundgarden | Stone Temple Pilots
+quality_score             | 3
+-[ RECORD 6 ]-------------+-----------------------------------------------------------------------------------------------------------------------------
+fact_text                 | Which fairy tale character falls asleep for a hundred years after pricking her finger?
+correct_answer            | Sleeping Beauty
+imported_distractors_old  | Alice | Rapunzel | Snow White
+ai_cached_distractors_new | Cinderella | Rapunzel | Snow White
+quality_score             | 3
+-[ RECORD 7 ]-------------+-----------------------------------------------------------------------------------------------------------------------------
+fact_text                 | What Kind Of Animal Is A Marmoset?
+correct_answer            | A Monkey
+imported_distractors_old  | A Bird | A Marsupial | A Rodent
+ai_cached_distractors_new | A Chimpanzee | A Gibbon | A Lemur
+quality_score             | 3
+-[ RECORD 8 ]-------------+-----------------------------------------------------------------------------------------------------------------------------
+fact_text                 | What is the name of the one of the three main types of rocks that gets its name from the Latin word meaning 'to settle'?
+correct_answer            | Sedimentary
+imported_distractors_old  | Igneous | Metamorphic | Volcanic
+ai_cached_distractors_new | Crystalline | Igneous | Metamorphic
+quality_score             | 3
+-[ RECORD 9 ]-------------+-----------------------------------------------------------------------------------------------------------------------------
+fact_text                 | Which Irish rock band released the studio album 'Boy'?
+correct_answer            | U2
+imported_distractors_old  | Public Image Ltd. | The Cure | The Script
+ai_cached_distractors_new | Sinéad O'Connor | The Cranberries | Thin Lizzy
+quality_score             | 4
+-[ RECORD 10 ]------------+-----------------------------------------------------------------------------------------------------------------------------
+fact_text                 | In which city is the Notre-Dame Cathedral located?
+correct_answer            | Paris
+imported_distractors_old  | Madrid | Rome | Vienna
+ai_cached_distractors_new | Chartres | Lyon | Reims
+quality_score             | 3
+
+Expanded display is off.
+
+=== QUERY 6: 10 random validation_failed facts (Haiku could not regenerate; imported still active) ===
+Expanded display is on.
+-[ RECORD 1 ]---------------+--------------------------------------------------------------------------------------------------------------------------------------------
+fact_text                   | Which word is used to describe early achievement in children?
+correct_answer              | Precocious
+imported_distractors_active | Intelligent | Miraculous | Prodigious
+-[ RECORD 2 ]---------------+--------------------------------------------------------------------------------------------------------------------------------------------
+fact_text                   | A 42 foot sperm whale has about 7 tons of __________ in it.
+correct_answer              | Oil
+imported_distractors_active | Blood | Sperm | Water
+-[ RECORD 3 ]---------------+--------------------------------------------------------------------------------------------------------------------------------------------
+fact_text                   | What song did Gary Numan have a hit with in 1980?
+correct_answer              | Cars
+imported_distractors_active | Heart And Soul | I Know What Boys Like | Somebody's Watching Me
+-[ RECORD 4 ]---------------+--------------------------------------------------------------------------------------------------------------------------------------------
+fact_text                   | What is the name of the classic board game where players must conquer the world by building armies and invading other players' territories?
+correct_answer              | Risk
+imported_distractors_active | Life | Monopoly | Trivial Pursuit
+-[ RECORD 5 ]---------------+--------------------------------------------------------------------------------------------------------------------------------------------
+fact_text                   | Which actress has appeared in films including Traffic and Eternals?
+correct_answer              | Salma Hayek
+imported_distractors_active | Frances Fisher | Keira Knightley | Rachel Weisz
+-[ RECORD 6 ]---------------+--------------------------------------------------------------------------------------------------------------------------------------------
+fact_text                   | The pasta strozzapreti has what meaning in Italian?
+correct_answer              | Priest-chokers
+imported_distractors_active | Fine hair | Little ears | Rings
+-[ RECORD 7 ]---------------+--------------------------------------------------------------------------------------------------------------------------------------------
+fact_text                   | What is the marketing slogan of Airbnb?
+correct_answer              | Belong Anywhere
+imported_distractors_active | Gotta catch 'em all! | Let your fingers do the walking | When you care enough to send the very best
+-[ RECORD 8 ]---------------+--------------------------------------------------------------------------------------------------------------------------------------------
+fact_text                   | Which of these is a style of tunic suit worn in China?
+correct_answer              | Mao suit
+imported_distractors_active | Kurta | Nehru Jacket | Sherwani
+-[ RECORD 9 ]---------------+--------------------------------------------------------------------------------------------------------------------------------------------
+fact_text                   | What is the capital city of Peru?
+correct_answer              | Lima
+imported_distractors_active | Caracas | Castries | Praia
+-[ RECORD 10 ]--------------+--------------------------------------------------------------------------------------------------------------------------------------------
+fact_text                   | Which German dog breed features short legs and a long body?
+correct_answer              | Dachshund
+imported_distractors_active | Doberman Pinscher | German Shepherd | Rottweiler
+
+Expanded display is off.

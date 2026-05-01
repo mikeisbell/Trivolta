@@ -152,7 +152,59 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 
 ---
 
-## Phase 3 — Beta Testing (gated on Phase 2.6.8)
+## Phase 2.9 — Pre-Beta Feature Roadmap
+
+Feature scope expansion ahead of beta, decided after the differentiation discussion (see TRIVOLTA_DIFFERENTIATION.md). Ordered by tranche; tranches are dependency-bounded, not time-bounded. Within a tranche, features can ship in any order unless otherwise noted.
+
+The goal of this work is not to add gameplay surface — it is to make beta produce interpretable retention data and to ship the architectural pieces (render layer, distractor regen) that turn Trivolta from "competent trivia app" into "competent trivia app with smarter questions and a real habit loop."
+
+### Tranche 1 — Foundation
+
+Independent of each other and of all later tranches. Ship before Tranche 2.
+
+⬜ **F1. Distractor regeneration across imported corpus** — run existing distractor pipeline against all 3,976 facts, replace Trivia API distractors with ambiguity-scored AI-generated ones, spot-check 20 samples. Depends on: nothing.
+⬜ **F2. In-app feedback channel** — `feedback_reports` table (user, screen, state snapshot, free text, timestamp), persistent feedback button on every screen. Every feature shipped after this gets feedback capture for free. Depends on: nothing.
+⬜ **F3. Manual fact spot-check** — click through 50 random facts across all 10 categories, log incorrect answers in `fact_reports`. Gate before any external tester sees the app. Depends on: nothing.
+
+### Tranche 2 — Question Rendering Layer
+
+⬜ **F4. Render Edge Function** (Phase 2.6.4) — input: stored fact, target skill level, style hint. Output: paraphrased question + render-time correctness check per TRIVOLTA_HALLUCINATION_STRATEGY.md. Depends on: F1.
+⬜ **F5. Compose Edge Function** (Phase 2.6.4) — selects facts, calls render, assembles 10-question game. Depends on: F4.
+⬜ **F6. Mobile cutover to compose endpoint** (Phase 2.6.5) — mobile app calls compose instead of legacy generate paths; old endpoints deprecated; Maestro suite passes. Depends on: F5.
+
+### Tranche 3 — Retention Triangle
+
+These three form a coherent retention loop. Ship together to be tested together.
+
+⬜ **F7. Shared daily challenge** — server generates one question set per day, all users see the same 10. Migration on `daily_challenges`. Replaces current per-user generation. Resolves tech-debt item: "Daily challenge shared questions." Depends on: nothing.
+⬜ **F8. Real consecutive-day streak tracking** — `current_streak`, `longest_streak`, `last_played_date` on profiles, server-side update after each session. Replaces hardcoded "🔥 3 day streak." Resolves tech-debt item: "HomeScreen streak display hardcoded." Depends on: nothing.
+⬜ **F9. Streak freeze mechanic** — `streak_freezes_available` on profiles (default 1/week, regenerates weekly), auto-consumes when a missed day would break an active streak, UI surfacing on profile + home, animation when freeze fires. Depends on: F8.
+
+### Tranche 4 — Acquisition Surface
+
+⬜ **F10. Sharable result card** — ResultScreen "Share" button generates screenshot-ready card (score, accuracy, category, optional emoji grid for daily challenge); `expo-sharing` for native share sheet. The card *is* the marketing — design seriously. Depends on: F7 (shared daily challenge for the emoji-grid case), F8 (streak data on the card).
+
+### Tranche 5 — Personalization
+
+⬜ **F11. Skill estimate per player** — `skill_estimate` column on profiles, RPC updates after each completed session based on accuracy and difficulty. No UI surface — input to F12 only. Depends on: nothing.
+⬜ **F12. Skill-aware paraphrasing** — render Edge Function (F4) accepts skill estimate; lower-skill profiles get shorter stems, more context, simpler vocabulary; higher-skill profiles get terser, harder phrasings. Depends on: F4, F11.
+
+### Tranche 6 — Social Signal Test
+
+Most cuttable tranche if runway compresses. Solo retention validated first via Tranches 1–4; this tranche tests whether latent social demand exists.
+
+⬜ **F13. Friend code system** — 6-char alphanumeric per user, `friendships` table with accept/pending/blocked states, "Add Friend" surface accepts code. No contact import, no social graph. Depends on: nothing.
+⬜ **F14. Friend-filtered leaderboard** — new "Friends" tab on LeaderboardScreen, same data shape as global leaderboard, filtered to accepted friendships. Depends on: F13.
+
+### Tranche 7 — Habit Triggers
+
+⬜ **F15. Push notification infrastructure** — Expo push service, iOS provisioning, Android FCM, permission flow on first launch (or after first session for better acceptance rate). Depends on: nothing.
+⬜ **F16. Streak risk notification** — 8pm local trigger when user has active streak ≥2 days and hasn't played today; scheduled on each session completion. Depends on: F15, F8.
+⬜ **F17. Daily challenge availability notification** — 9am local trigger daily; opt-out from settings. Most cuttable item in this tranche. Depends on: F15.
+
+### Tranche 8 — Beta Release Gates
+
+Not features — release prerequisites. Carried forward from prior tracker state.
 
 ✅ Local dev migrated to new Supabase API keys (sb_publishable / sb_secret) — INSTRUCTIONS_LOCAL_NEW_KEYS.md
 ⬜ Production Supabase project created — INSTRUCTIONS_PRODUCTION_SUPABASE.md
@@ -165,16 +217,38 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 ⬜ Privacy policy page (trivolta.app/privacy)
 ⬜ TestFlight build submitted
 ⬜ 25 beta testers recruited and onboarded
-⬜ Feedback collection mechanism in place
 ⬜ Bug triage process defined (Sev 1/2/3)
 
-### Pre-Beta Checklist (deferred work between 2.6.8 and beta open)
+*Note: "Feedback collection mechanism in place" is now F2 in Tranche 1.*
+
+### Cuttable Order If Runway Compresses
+
+1. **Tranche 6** (friend system) — most cuttable; testable post-beta if signal warrants.
+2. **Tranche 5** (skill personalization) — F12 is a real differentiator but invisible to testers; defer if needed.
+3. **Tranche 7 partial** — F17 (daily challenge nudge) droppable; F15+F16 (streak risk) is the high-value piece.
+
+Tranches 1–4 are non-negotiable. They're what makes beta produce interpretable retention data.
+
+### Explicitly NOT in Pre-Beta Scope
+
+- New gameplay modes (timed/survival/head-to-head) — add post-beta if signal warrants.
+- Achievements / XP buildout beyond decorative — derivative retention surface; doesn't fix bad retention.
+- UGC custom topic shareable quizzes — too risky to ship half-baked.
+- On-device caching (Phase 2.6.6) — defer; beta load too low to need it.
+- Social-graph features beyond friend codes — covered in differentiation discussion; wrong rabbit hole right now.
+
+### Deferred Pre-Beta Items (carry-forward, lower priority)
 
 ⬜ Cost optimization pass — prompt caching across all Anthropic-calling Edge Functions; consider Haiku for question rendering (~30% steady-state savings)
-⬜ Manual seeding verification — sample 20 auto-verified facts across categories, confirm correctness before opening beta
-⬜ run_tests.sh exit-code masking — when no simulator is booted, the tee pipe masks maestro's exit code and the script reports green. Folded into Phase 2.6.7.
-⬜ Wikipedia excerpt-match calibration — measure miss rate across categories; consider switching to flatter HTML sources (CIA Factbook, IMDB structured pages, .gov sites) where Wikipedia consistently fails
-⬜ Top up `art` slug coverage — currently only 76 facts vs ~400 in other slugs because The Trivia API's `arts_and_literature` category skews heavily literary at the tag level. Either re-run more `arts_and_literature` batches and accept that most go to `literature`, or import a focused art-only dataset from another source.
+⬜ run_tests.sh exit-code masking — folded into Phase 2.6.7.
+⬜ Wikipedia excerpt-match calibration — measure miss rate across categories; consider switching to flatter HTML sources where Wikipedia consistently fails. Post-beta unless `fact_reports` data shows correctness issues.
+⬜ Top up `art` slug coverage — currently 76 facts vs ~400 in other slugs. Either re-run more `arts_and_literature` batches or import a focused art-only dataset from another source.
+
+---
+
+## Phase 3 — Beta Testing (gated on Phase 2.6.8 + Phase 2.9 Tranches 1–4)
+
+See Phase 2.9 Tranche 8 for release-gate items.
 
 ---
 
@@ -211,9 +285,9 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 
 - **`heroPlayBtnDone` style missing** — daily challenge "Completed ✓" button stays purple instead of green (DEVIATIONS.md #2). Fix in polish pass.
 - **Leaderboard rank outside top 50** — `fetchUserStats` uses the `leaderboard` view which limits to 50 rows. Users ranked 51+ see rank 0 or null on ProfileScreen. Not fixed. (Folded into Phase 2.6.7.)
-- **Daily challenge shared questions** — each user gets independently AI-generated questions for the same day. Intended design: all users get the same 10 questions. Deferred as a product redesign.
+- **Daily challenge shared questions** — each user gets independently AI-generated questions for the same day. Intended design: all users get the same 10 questions. ~~Deferred as a product redesign.~~ Promoted to F7 in Phase 2.9 Tranche 3.
 - **XP and level system is decorative** — ProfileScreen shows XP bar and level computed from score, but there is no real XP progression system, no level-up events, and no XP from daily challenge completion. Acceptable for beta, not for launch.
-- **HomeScreen streak display hardcoded** — greeting area shows a hardcoded "🔥 3 day streak". Actual consecutive-day streak tracking from Supabase not implemented. Cosmetic only.
+- **HomeScreen streak display hardcoded** — greeting area shows a hardcoded "🔥 3 day streak". Actual consecutive-day streak tracking from Supabase not implemented. ~~Cosmetic only.~~ Promoted to F8 in Phase 2.9 Tranche 3.
 - **Achievements computed client-side** — unlock states derived from `gamesPlayed`, `bestStreak` etc. locally. No server-side achievement events, no push notifications on unlock. Acceptable for beta.
 - **Android not tested** — all Maestro tests run on iOS Simulator only. Android parity assumed but untested.
 - **test_18 manual-only** — QuestionScreen error/retry state cannot be automated in Maestro (requires killing Edge Functions mid-test). Must be manually verified before each beta release.
@@ -263,3 +337,17 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 ✅ INSTRUCTIONS_PRODUCTION_SUPABASE.md
 ⬜ INSTRUCTIONS_EAS_BUILD.md
 ⬜ INSTRUCTIONS_ADMOB.md (deferred post-launch)
+
+### Phase 2.9 — Pre-Beta Feature Roadmap (to be written as needed)
+
+⬜ INSTRUCTIONS_F1_DISTRACTOR_REGEN.md
+⬜ INSTRUCTIONS_F2_FEEDBACK_CHANNEL.md
+⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md (covers F4 + F5; already on disk)
+⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md (covers F6)
+⬜ INSTRUCTIONS_F7_SHARED_DAILY_CHALLENGE.md
+⬜ INSTRUCTIONS_F8_STREAK_TRACKING.md
+⬜ INSTRUCTIONS_F9_STREAK_FREEZE.md
+⬜ INSTRUCTIONS_F10_SHARE_CARD.md
+⬜ INSTRUCTIONS_F11_F12_SKILL_PARAPHRASING.md
+⬜ INSTRUCTIONS_F13_F14_FRIEND_SYSTEM.md
+⬜ INSTRUCTIONS_F15_F16_F17_PUSH_NOTIFICATIONS.md

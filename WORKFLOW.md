@@ -5,7 +5,7 @@
 **Mac Claude (claude.ai)** — design, spec, architecture decisions, diff review
 **Claude Code (iTerm2)** — all file writes, code execution, test runs, git commits
 
-Mac Claude writes INSTRUCTIONS_*.md files. Claude Code reads and executes them.
+Mac Claude writes INSTRUCTIONS\_\*.md files. Claude Code reads and executes them.
 Mac Claude reviews every diff against four criteria before Claude Code commits.
 
 ---
@@ -13,11 +13,13 @@ Mac Claude reviews every diff against four criteria before Claude Code commits.
 ## Session Startup
 
 **New iTerm2 session:**
+
 ```
 Read CLAUDE.md then read INSTRUCTIONS_<n>.md and execute all steps exactly as written.
 ```
 
 **Existing session (still running):**
+
 ```
 Read INSTRUCTIONS_<n>.md and execute all steps exactly as written.
 ```
@@ -28,7 +30,7 @@ CLAUDE.md is only needed once per session. Claude Code retains it in context.
 
 ## INSTRUCTIONS File Format
 
-Every INSTRUCTIONS_*.md must contain these sections in order:
+Every INSTRUCTIONS\_\*.md must contain these sections in order:
 
 ```
 ## Task
@@ -41,7 +43,7 @@ Bullet list of exact pass/fail checks. Every item must be binary.
 What Claude Code must NOT do. Be explicit.
 
 ## Steps
-Numbered implementation steps with exact file paths and code.
+Numbered implementation steps with exact file paths.
 
 ## Verification
 Exact commands to run. Do not report success until all pass.
@@ -76,6 +78,7 @@ Learned from two key exposures during this project. Non-negotiable:
 6. Secret files belong in `.gitignore` before they are created, not after
 
 Files that must always be gitignored:
+
 - `supabase/.env.local` — Anthropic API key + Supabase keys
 - `mobile/.env.local` — Supabase public URL + anon key
 - `mobile/maestro/.env.maestro` — Supabase service role key for test user cleanup
@@ -121,16 +124,19 @@ Learned from the Detox → Maestro migration and subsequent test failures:
 ## Friction Patterns to Avoid (from insights report)
 
 **Buggy code (15 occurrences)** — mitigated by:
+
 - Verifiable objectives in every INSTRUCTIONS file
 - TypeScript check before every commit
 - Full Maestro suite run before every commit
 
 **Wrong approach (8 occurrences)** — mitigated by:
+
 - Explicit constraints section in every INSTRUCTIONS file
 - Stating what NOT to do, not just what to do
 - Mac Claude reviews approach before Claude Code implements
 
 **Excessive changes (1 occurrence)** — mitigated by:
+
 - "Do not modify X" constraints
 - Diff review criterion 3 (no unintended files modified)
 
