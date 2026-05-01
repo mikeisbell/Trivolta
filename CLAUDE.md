@@ -174,6 +174,8 @@ When `simplify-and-verify.sh` reverts a simplification because verification brok
 
 The `claude -p` reviewer subprocess has no access to the implementer session's chat history. It sees only the prompt template plus the diff, the matching INSTRUCTIONS file, CLAUDE.md, and the four-criteria excerpt from WORKFLOW.md. This isolation is intentional. Do not bypass it by piping anything else into the subprocess.
 
+Every `simplify-and-verify.sh` run produces exactly one `chore:` commit and leaves the working tree clean. The audit trail is dense by design.
+
 ## Root Cause Before Fix
 
 For any failing test or bug, investigate actual root cause before writing a fix. Do not assume the test assertion is wrong — check the implementation first. State the diagnosed root cause in the response before making any file changes.

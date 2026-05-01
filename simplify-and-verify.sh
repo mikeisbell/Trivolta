@@ -3,10 +3,13 @@
 #
 # Quality-pass wrapper: runs `claude /simplify` on the current HEAD, then
 # re-runs the project's verification commands (from simplify-verify.cmds).
-# If verification still passes, the simplifications are committed as a
-# `chore: /simplify — <short-sha>` commit. If verification fails, the
-# working tree is hard-reset to the pre-simplify HEAD and the run exits
-# 0 (a revert is correct behavior, not a script failure).
+# Every successful invocation lands exactly one `chore:` commit on HEAD,
+# so the next run starts on a clean working tree:
+#   chore: /simplify — <sha>            (changes accepted)
+#   chore: /simplify reverted — <sha>   (changes failed verification)
+#   chore: /simplify ran clean — <sha>  (no changes suggested)
+# In all three cases the forensic log is committed under
+# reviews/<short-sha>.simplify-log.md.
 #
 # Usage:
 #   bash simplify-and-verify.sh
@@ -22,6 +25,19 @@
 # Local-only. Do not call from CI or any indirect mechanism.
 
 set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+# /simplify non-interactive flags. Tested against claude 2.1.126.
+# Without --permission-mode acceptEdits, `claude -p '/simplify'` pauses
+# asking for permission to apply file edits and the subprocess hangs
+# (observed in commit 81c59d8's forensic log). acceptEdits is the
+# narrowest of the available permission modes — it auto-accepts file
+# edits only, not arbitrary tool use. See INSTRUCTIONS_REVIEW_PIPELINE_FIXES.md
+# for the discovery procedure.
+CLAUDE_SIMPLIFY_FLAGS=(--output-format text --permission-mode acceptEdits)
 
 # ---------------------------------------------------------------------------
 # Flag parsing
@@ -73,7 +89,16 @@ SHORT_SHA="${PRE_SIMPLIFY_SHA:0:7}"
 
 REVIEWS_DIR="$REPO_ROOT/reviews"
 mkdir -p "$REVIEWS_DIR"
-LOG_FILE="$REVIEWS_DIR/${SHORT_SHA}.simplify-log.md"
+
+# Forensic log lives outside the working tree until we know whether we're
+# committing or reverting. After the decision, we copy it into
+# reviews/<short-sha>.simplify-log.md as part of a single chore commit.
+# This keeps the working tree clean across runs (Defect B fix).
+EXTERNAL_LOG_DIR="${TMPDIR:-/tmp}/trivolta-simplify-logs"
+mkdir -p "$EXTERNAL_LOG_DIR"
+EXTERNAL_LOG="$EXTERNAL_LOG_DIR/${SHORT_SHA}.md"
+REPO_LOG="$REVIEWS_DIR/${SHORT_SHA}.simplify-log.md"
+LOG_FILE="$EXTERNAL_LOG"
 
 # ---------------------------------------------------------------------------
 # Version gate — /simplify shipped in claude 2.1.63.
@@ -88,7 +113,7 @@ CLAUDE_VERSION="$(printf '%s' "$CLAUDE_VERSION_RAW" | grep -oE '[0-9]+\.[0-9]+\.
 
 version_ge() {
   # version_ge X Y  →  returns 0 if X >= Y semver-style.
-  local a b
+  local a
   a="$(printf '%s\n' "$1" "$2" | sort -V | head -1)"
   [[ "$a" == "$2" ]]
 }
@@ -99,7 +124,25 @@ if [[ -z "$CLAUDE_VERSION" ]] || ! version_ge "$CLAUDE_VERSION" "2.1.63"; then
 fi
 
 # ---------------------------------------------------------------------------
-# Run /simplify in a non-interactive subprocess
+# commit_log_artifact — single helper that closes every branch.
+# Copies the external forensic log into reviews/, stages it, optionally
+# stages all other changes (when /simplify produced accepted changes),
+# and commits with the supplied message.
+# ---------------------------------------------------------------------------
+commit_log_artifact() {
+  local commit_msg="$1"
+  local stage_all="${2:-no}"
+  cp "$EXTERNAL_LOG" "$REPO_LOG"
+  git add "$REPO_LOG"
+  if [[ "$stage_all" == "yes" ]]; then
+    git add -A
+  fi
+  git commit -m "$commit_msg" >/dev/null
+}
+
+# ---------------------------------------------------------------------------
+# Run /simplify in a non-interactive subprocess. Output goes to the
+# external log (outside the working tree).
 # ---------------------------------------------------------------------------
 {
   echo "# /simplify forensic log — ${SHORT_SHA}"
@@ -107,6 +150,7 @@ fi
   echo "claude version: ${CLAUDE_VERSION_RAW}"
   echo "pre-simplify HEAD: ${PRE_SIMPLIFY_SHA}"
   echo "dry-run: ${DRY_RUN}"
+  echo "claude flags: ${CLAUDE_SIMPLIFY_FLAGS[*]}"
   echo
   echo "## stdout"
   echo
@@ -114,7 +158,7 @@ fi
 } > "$LOG_FILE"
 
 set +e
-claude -p '/simplify' --output-format text >> "$LOG_FILE" 2>&1
+claude -p '/simplify' "${CLAUDE_SIMPLIFY_FLAGS[@]}" >> "$LOG_FILE" 2>&1
 SIMPLIFY_EXIT=$?
 set -e
 
@@ -124,19 +168,31 @@ set -e
   echo "claude /simplify exit: ${SIMPLIFY_EXIT}"
 } >> "$LOG_FILE"
 
+# ---------------------------------------------------------------------------
+# Branch on /simplify's actual effect on the working tree.
+# ---------------------------------------------------------------------------
 if [[ -z "$(git status --porcelain)" ]]; then
-  echo "no simplifications suggested"
-  echo "(forensic log: ${LOG_FILE#$REPO_ROOT/})"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "dry-run: no simplifications suggested"
+    echo "(external forensic log: ${EXTERNAL_LOG})"
+    exit 0
+  fi
+  commit_log_artifact "chore: /simplify ran clean — ${SHORT_SHA}" no
+  echo "no simplifications suggested (committed log artifact)"
+  echo "(external forensic log: ${EXTERNAL_LOG})"
   exit 0
 fi
 
 # ---------------------------------------------------------------------------
-# Dry-run: report changes but do not commit.
+# Dry-run: report changes but do not commit or revert. Discard them
+# from the working tree so subsequent runs start clean.
 # ---------------------------------------------------------------------------
 if [[ "$DRY_RUN" == "true" ]]; then
   echo "dry-run: /simplify produced changes (not committed):"
   git status --short
-  echo "(forensic log: ${LOG_FILE#$REPO_ROOT/})"
+  echo "(external forensic log: ${EXTERNAL_LOG})"
+  git reset --hard "$PRE_SIMPLIFY_SHA" >/dev/null
+  echo "dry-run: working tree restored to ${SHORT_SHA}"
   exit 0
 fi
 
@@ -158,14 +214,14 @@ run_verification() {
 CHANGED_FILE_COUNT="$(git status --porcelain | wc -l | tr -d ' ')"
 
 if run_verification; then
-  git add -A
-  git commit -m "chore: /simplify — ${SHORT_SHA}" >/dev/null
-  echo "simplification accepted, ${CHANGED_FILE_COUNT} files changed"
-  echo "(forensic log: ${LOG_FILE#$REPO_ROOT/})"
+  commit_log_artifact "chore: /simplify — ${SHORT_SHA}" yes
+  echo "simplification accepted, ${CHANGED_FILE_COUNT} files changed (committed log artifact)"
+  echo "(external forensic log: ${EXTERNAL_LOG})"
   exit 0
 else
   git reset --hard "$PRE_SIMPLIFY_SHA" >/dev/null
-  echo "simplification reverted (verification failed)"
-  echo "(forensic log preserved: ${LOG_FILE#$REPO_ROOT/})"
+  commit_log_artifact "chore: /simplify reverted — ${SHORT_SHA}" no
+  echo "simplification reverted (verification failed; committed log artifact)"
+  echo "(external forensic log: ${EXTERNAL_LOG})"
   exit 0
 fi

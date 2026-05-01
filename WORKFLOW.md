@@ -127,6 +127,8 @@ The subprocess is wrapped by two repo-root scripts:
 
 Schema and prompt details: see `reviews/README.md`.
 
+Every successful `simplify-and-verify.sh` run lands exactly one `chore:` commit on HEAD: `chore: /simplify — <sha>` (changes accepted), `chore: /simplify reverted — <sha>` (changes failed verification and were reset), or `chore: /simplify ran clean — <sha>` (no changes suggested). The forensic log is committed under `reviews/<sha>.simplify-log.md` in all three cases. The next run always starts on a clean working tree.
+
 ### Exit codes for `run-review.sh`
 
 | Verdict             | Exit | Meaning                                          |

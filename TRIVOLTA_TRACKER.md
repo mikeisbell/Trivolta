@@ -160,6 +160,7 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 Cross-cutting tooling — applies to every commit on every phase, not phase-bound.
 
 ✅ Automated code review phase — INSTRUCTIONS_AUTOMATED_REVIEW.md (`reviews/`, `run-review.sh`, `simplify-and-verify.sh`, `simplify-verify.cmds`)
+✅ Review pipeline fixes — INSTRUCTIONS_REVIEW_PIPELINE_FIXES.md (non-interactive `/simplify` via `--permission-mode acceptEdits`, forensic log moved out of working tree, every run lands one `chore:` commit)
 
 ---
 
@@ -383,6 +384,7 @@ See Phase 2.9 Tranche 8 for release-gate items.
 ✅ INSTRUCTIONS_F2_FEEDBACK_CHANNEL.md
 ✅ INSTRUCTIONS_F3_FACT_SPOT_CHECK.md
 ✅ INSTRUCTIONS_AUTOMATED_REVIEW.md
+✅ INSTRUCTIONS_REVIEW_PIPELINE_FIXES.md
 ⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md (covers F4 + F5; already on disk)
 ⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md (covers F6)
 ⬜ INSTRUCTIONS_F7_SHARED_DAILY_CHALLENGE.md
