@@ -40,7 +40,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Forbidden: admin role required' }), { status: 403, headers: jsonHeaders })
   }
 
-  let body: { fact_id?: string }
+  let body: { fact_id?: string; apply?: boolean }
   try {
     body = await req.json()
   } catch {
@@ -50,6 +50,7 @@ serve(async (req) => {
   if (!factId) {
     return new Response(JSON.stringify({ error: 'fact_id required' }), { status: 400, headers: jsonHeaders })
   }
+  const apply = body?.apply === true
 
   const service = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -71,6 +72,25 @@ serve(async (req) => {
       JSON.stringify({ error: 'High-value facts are not eligible for AI-cached distractors' }),
       { status: 400, headers: jsonHeaders },
     )
+  }
+
+  if (apply) {
+    const { data: existingAiCached, error: idemErr } = await service
+      .from('distractors')
+      .select('id')
+      .eq('fact_id', factId)
+      .eq('authored_by', 'ai-cached')
+      .eq('is_active', true)
+      .limit(1)
+    if (idemErr) {
+      return new Response(JSON.stringify({ error: idemErr.message }), { status: 503, headers: jsonHeaders })
+    }
+    if (existingAiCached && existingAiCached.length > 0) {
+      return new Response(
+        JSON.stringify({ ok: true, fact_id: factId, applied: false, reason: 'already_regenerated' }),
+        { status: 200, headers: jsonHeaders },
+      )
+    }
   }
 
   const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') })
@@ -137,6 +157,8 @@ Return ONLY JSON. No markdown. Shape:
     }
   }
 
+  const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
+
   let lastDistractors: string[] | null = null
   let lastScores: number[] | null = null
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -147,21 +169,83 @@ Return ONLY JSON. No markdown. Shape:
     if (!scores) continue
     lastScores = scores
     if (scores.every((n) => n < AMBIGUITY_REJECT)) {
+      if (!apply) {
+        return new Response(
+          JSON.stringify({ ok: true, fact_id: factId, distractors, scores }),
+          { status: 200, headers: jsonHeaders },
+        )
+      }
+
+      const qualityScore = clamp(5 - Math.max(...scores), 1, 5)
+      const reviewedAt = new Date().toISOString()
+
+      const { error: deactivateErr } = await service
+        .from('distractors')
+        .update({ is_active: false })
+        .eq('fact_id', factId)
+        .eq('authored_by', 'imported')
+        .eq('is_active', true)
+      if (deactivateErr) {
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            fact_id: factId,
+            applied: false,
+            reason: 'write_failed',
+            error: deactivateErr.message,
+            distractors,
+            scores,
+          }),
+          { status: 200, headers: jsonHeaders },
+        )
+      }
+
+      const insertRows = distractors.map((distractor_text) => ({
+        fact_id: factId,
+        distractor_text,
+        authored_by: 'ai-cached',
+        is_active: true,
+        quality_score: qualityScore,
+        reviewed_by: user.id,
+        reviewed_at: reviewedAt,
+      }))
+      const { error: insertErr } = await service.from('distractors').insert(insertRows)
+      if (insertErr) {
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            fact_id: factId,
+            applied: false,
+            reason: 'write_failed',
+            error: insertErr.message,
+            distractors,
+            scores,
+          }),
+          { status: 200, headers: jsonHeaders },
+        )
+      }
+
       return new Response(
-        JSON.stringify({ ok: true, fact_id: factId, distractors, scores }),
+        JSON.stringify({
+          ok: true,
+          fact_id: factId,
+          applied: true,
+          quality_score: qualityScore,
+          distractors,
+          scores,
+        }),
         { status: 200, headers: jsonHeaders },
       )
     }
   }
 
-  return new Response(
-    JSON.stringify({
-      ok: false,
-      fact_id: factId,
-      reason: 'validation_failed',
-      distractors: lastDistractors ?? [],
-      scores: lastScores ?? [],
-    }),
-    { status: 200, headers: jsonHeaders },
-  )
+  const failBody: Record<string, unknown> = {
+    ok: false,
+    fact_id: factId,
+    reason: 'validation_failed',
+    distractors: lastDistractors ?? [],
+    scores: lastScores ?? [],
+  }
+  if (apply) failBody.applied = false
+  return new Response(JSON.stringify(failBody), { status: 200, headers: jsonHeaders })
 })
