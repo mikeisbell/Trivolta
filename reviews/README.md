@@ -6,6 +6,8 @@ launched from `run-review.sh`. The artifact is the audit trail: it records
 what the diff did, what the spec asked for, and where they diverged.
 
 This scaffolding was first wired up against `claude --version` 2.1.126.
+<!-- smoke-test: pipeline self-review marker -->
+
 
 ## Filename convention
 
