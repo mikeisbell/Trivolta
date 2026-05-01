@@ -21,6 +21,7 @@ const NAV_LINKS: Array<{ label: string; href: string; description: string }> = [
   { label: 'All facts', href: '/admin/facts', description: 'Browse, search, and open any fact' },
   { label: 'Review queue', href: '/admin/facts/queue', description: 'Pending facts awaiting verification' },
   { label: 'Needs review', href: '/admin/facts/needs-review', description: 'Facts the AI flagged for human eyes' },
+  { label: 'Spot check', href: '/admin/facts/spot-check', description: 'Review random facts for correctness' },
   { label: 'Auto-seed', href: '/admin/facts/auto-seed', description: 'Run the AI-verifies-AI pipeline' },
   { label: 'Import', href: '/admin/facts/import', description: 'Manual OpenTrivia DB import' },
   { label: 'Source citation', href: '/admin/sources/cite', description: 'Manual AI-assisted citing' },

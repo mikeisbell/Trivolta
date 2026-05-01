@@ -1,0 +1,80 @@
+appId: com.mikeisbell.trivolta
+env:
+  SUPABASE_URL: ${SUPABASE_URL}
+  SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+---
+# test_28: Admin fact spot-check (correct + incorrect verdicts)
+# Uses a separate test user (testuser_maestro_admin@trivolta-test.com) so
+# tests 03–27 keep using the non-admin testuser_maestro_02 unchanged.
+
+- clearState
+- launchApp:
+    clearState: true
+
+- runScript:
+    file: ./scripts/ensure_admin_test_user.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+
+- assertVisible:
+    id: "auth-email-input"
+
+- tapOn:
+    id: "auth-email-input"
+- inputText: "testuser_maestro_admin@trivolta-test.com"
+
+- tapOn:
+    id: "auth-password-input"
+- inputText: "TestPassword123!"
+
+- tapOn:
+    id: "auth-submit-button"
+
+- tapOn:
+    text: "Not Now"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 15000
+
+- openLink: trivolta://admin/facts/spot-check
+
+- extendedWaitUntil:
+    visible:
+      id: "spot-check-fact-text"
+    timeout: 15000
+
+- assertVisible:
+    id: "spot-check-correct-btn"
+
+- tapOn:
+    id: "spot-check-correct-btn"
+
+- extendedWaitUntil:
+    visible:
+      text: "Reviewed 1 of 50 today"
+    timeout: 10000
+
+- assertVisible:
+    id: "spot-check-incorrect-btn"
+
+- tapOn:
+    id: "spot-check-incorrect-btn"
+
+- assertVisible:
+    id: "spot-check-note-input"
+
+- tapOn:
+    id: "spot-check-note-input"
+- inputText: "Maestro test report"
+
+- tapOn:
+    id: "spot-check-submit-incorrect"
+
+- extendedWaitUntil:
+    visible:
+      text: "Reviewed 2 of 50 today"
+    timeout: 10000

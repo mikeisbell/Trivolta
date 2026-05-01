@@ -270,6 +270,25 @@ export async function submitFeedback(payload: FeedbackPayload): Promise<{ ok: tr
   return res.json()
 }
 
+export type SpotCheckPayload = {
+  fact_id: string
+  verdict: 'correct' | 'incorrect'
+  note?: string
+}
+
+export type SpotCheckResponse =
+  | { ok: true; id: string; fact_report_id: string | null; fact_report_error?: string }
+  | { ok: false; reason: 'already_reviewed' }
+
+export async function submitSpotCheck(payload: SpotCheckPayload): Promise<SpotCheckResponse> {
+  const res = await callFunction('submit-spot-check', payload)
+  if (res.status === 409) {
+    return { ok: false, reason: 'already_reviewed' }
+  }
+  if (!res.ok) throw new Error(`submit-spot-check failed: ${res.status}`)
+  return res.json()
+}
+
 export async function fetchDailyChallenge(): Promise<DailyChallenge | null> {
   try {
     const res = await callFunction('daily-challenge', {})

@@ -88,15 +88,17 @@
 ✅ test_25 — join lobby error flow
 ✅ test_26 — lobby results navigation (home + play-again navigation only)
 ✅ test_27 — feedback submit (FAB → modal → submit → toast)
+✅ test_28 — admin fact spot-check (correct + incorrect verdicts)
 
-All active tests are self-contained — each guarantees its own test user via ensure_test_user_02.js.
+All active tests are self-contained — each guarantees its own test user via ensure_test_user_02.js
+(test_28 also provisions testuser_maestro_admin via ensure_admin_test_user.js).
 Single run passes after supabase db reset. No warm-up run required.
 
 ### Test Backlog (Tier 3 — deferred, not blocking beta)
-⬜ test_28 — lobby game timer expiry (requires 25s wait in lobby context)
-⬜ test_29 — profile achievement unlock assertions (requires seeding specific stats)
-⬜ test_30 — leaderboard current user highlighted (requires seeding top-10 position)
-⬜ test_31 — join full lobby rejected (requires seeding 8 players)
+⬜ test_29 — lobby game timer expiry (requires 25s wait in lobby context)
+⬜ test_30 — profile achievement unlock assertions (requires seeding specific stats)
+⬜ test_31 — leaderboard current user highlighted (requires seeding top-10 position)
+⬜ test_32 — join full lobby rejected (requires seeding 8 players)
 
 ### Edge Case Coverage (deferred — not blocking beta)
 ⬜ Network failure during question fetch — retry UI (test_18 non-automatable)
@@ -166,7 +168,34 @@ Independent of each other and of all later tranches. Ship before Tranche 2.
 ✅ **F1. Distractor regeneration across imported corpus** — ran distractor pipeline across all 3,976 facts. 2,838 facts regenerated, 1,128 unchanged (validation_failed bucket retained imported distractors), 0 errors. Actual cost ~$18.6. Quality data in `F1_QUALITY_DATA.txt`. **Open follow-up:** 28% of facts hit `validation_failed` because Haiku could not generate replacements scoring below the strict ambiguity threshold; the imported (often weak) distractors survived only by default. Threshold relaxation experiment captured as F1a (on hold).
 ⏸ **F1a. Validator threshold relaxation experiment** — ON HOLD. Mike to review closely at a later time and decide when/if to add back to roadmap. Context: 28% of F1 facts (1,128 / 3,976) hit `validation_failed` and kept imported distractors. Proposed experiment: relaxed ambiguity threshold (e.g. score ≤4 instead of ≤3, or 2-of-3 passing) on a 50-fact sample, compare to imported baseline, decide whether to re-run F1. Cost estimate: ~$1 for the sample. Does NOT block F2, F3, F4, or any downstream work.
 ✅ **F2. In-app feedback channel** — `feedback_reports` table + `submit-feedback` Edge Function + persistent FAB on every authenticated screen + `/admin/feedback` triage screen + Maestro test_27. Every feature shipped after this gets feedback capture for free. Depends on: nothing.
-⬜ **F3. Manual fact spot-check** — click through 50 random facts across all 10 categories, log incorrect answers in `fact_reports`. Gate before any external tester sees the app. Depends on: nothing.
+✅ **F3. Manual fact spot-check** — `spot_check_results` table + `submit-spot-check` Edge Function + `get_next_spot_check_fact()` RPC + `/admin/facts/spot-check` admin screen + Maestro test_28. The 50-fact session itself is Mike's manual work — see "F3 — Mike's spot-check session" below.
+
+### F3 — Mike's spot-check session (manual work, post-merge)
+
+The F3 commit ships the tool. The actual review pass is Mike's manual work:
+
+1. Open `/admin/facts/spot-check` after F3 merges (Expo Web at localhost:8081/admin/facts/spot-check, or in iOS Simulator via deep link `trivolta://admin/facts/spot-check`).
+2. Review until the progress chip reads "Reviewed 50 of 50 today" — usually 1–2 sittings. Each fact stratifies across the 10 categories so coverage stays balanced.
+3. After the session, run this SQL summary against the local DB:
+   ```sql
+   select category_slug,
+          count(*) filter (where verdict = 'correct')   as correct_count,
+          count(*) filter (where verdict = 'incorrect') as incorrect_count,
+          count(*) as total
+   from public.spot_check_results
+   where reviewer_id = (select id from auth.users where email = 'trivoltaapp@outlook.com')
+     and reviewed_at >= now() - interval '24 hours'
+   group by category_slug
+   order by category_slug;
+
+   select count(*) as fact_reports_from_spot_check
+   from public.fact_reports
+   where reason = 'incorrect'
+     and reported_by = (select id from auth.users where email = 'trivoltaapp@outlook.com')
+     and created_at >= now() - interval '24 hours';
+   ```
+   The two row counts ("incorrect" sum across categories vs `fact_reports_from_spot_check`) should match.
+4. If the incorrect rate is >10%, pause and re-evaluate beta-readiness; if ≤10%, proceed to Tranche 2 work (F4 onward).
 
 ### Tranche 2 — Question Rendering Layer
 
@@ -344,6 +373,8 @@ See Phase 2.9 Tranche 8 for release-gate items.
 
 ✅ INSTRUCTIONS_F1_DISTRACTOR_REGEN.md
 ✅ INSTRUCTIONS_F2_FEEDBACK_CHANNEL.md
+✅ INSTRUCTIONS_F3_FACT_SPOT_CHECK.md
+⬜ INSTRUCTIONS_AUTOMATED_REVIEW.md
 ⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md (covers F4 + F5; already on disk)
 ⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md (covers F6)
 ⬜ INSTRUCTIONS_F7_SHARED_DAILY_CHALLENGE.md
