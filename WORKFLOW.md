@@ -2,11 +2,44 @@
 
 ## Two-Claude Split
 
-**Mac Claude (claude.ai)** — design, spec, architecture decisions, diff review
-**Claude Code (iTerm2)** — all file writes, code execution, test runs, git commits
+**Mac Claude (claude.ai)** — design, spec, architecture decisions, diff review. Has direct read/write access to the Trivolta repo via the Filesystem MCP tools (allowed roots include `/Users/mizzy/Developer`).
+**Claude Code (iTerm2)** — all code execution, test runs, git commits. Reads INSTRUCTIONS files Mac Claude has already written to disk.
 
-Mac Claude writes INSTRUCTIONS\_\*.md files. Claude Code reads and executes them.
+Mac Claude writes INSTRUCTIONS\_\*.md files **directly to the Trivolta repo on disk** — never pasted into chat for Mike to copy, never written to `/tmp` or any path outside the repo. Claude Code then reads them and executes.
 Mac Claude reviews every diff against four criteria before Claude Code commits.
+
+---
+
+## Mac Claude — Mandatory Tool Usage
+
+Mac Claude has access to the user's filesystem via the Filesystem MCP. Use it. Do not ask Mike to paste file contents, do not summarize files in chat instead of reading them, do not produce INSTRUCTIONS files as chat output for Mike to manually save.
+
+**At session start, when asked to read project docs:**
+- Use `Filesystem:read_multiple_files` with the full list of paths in one call. Do NOT make N separate `read_text_file` calls.
+- Trivolta repo root: `/Users/mizzy/Developer/Trivolta`
+
+**When writing a new INSTRUCTIONS file:**
+- Use `Filesystem:write_file` with the full path `/Users/mizzy/Developer/Trivolta/INSTRUCTIONS_<NAME>.md`.
+- Never write INSTRUCTIONS files to `/tmp`, `/private/tmp`, `/mnt`, `/home/claude`, or any path outside the Trivolta repo. Those paths are on Claude's container, not Mike's machine.
+- Confirm the write landed by listing the directory or by quoting the size from the write response. Do NOT re-read the entire file back into chat to "verify" — that wastes tokens.
+
+**When updating an existing file (TRIVOLTA_TRACKER.md, WORKFLOW.md, CLAUDE.md, etc.):**
+- Use `Filesystem:edit_file` with `oldText` / `newText` pairs. Match `oldText` exactly including whitespace.
+- Do NOT use `Filesystem:write_file` to update an existing file unless the change is so large that a full rewrite is unavoidable. `write_file` overwrites silently and loses any concurrent edits.
+- For mechanical status flips (⬜ → ✅, ⬜ → ⏸), `edit_file` is always correct.
+
+**When inspecting code or migrations to ground an INSTRUCTIONS file:**
+- Use `Filesystem:read_text_file` with `head` / `tail` / `view_range`-style limits where the file is large. Don't read entire 30 KB files when 80 lines answer the question.
+- Use `Filesystem:list_directory` to discover existing files before referencing them by name in an INSTRUCTIONS file. If a file is referenced that doesn't exist on disk, Claude Code will fail.
+- Use `Filesystem:search_files` to locate files by glob pattern when the path isn't known.
+
+**When updating Claude's memory:**
+- Use the `memory_user_edits` tool. Do NOT just acknowledge changes conversationally — nothing persists without the tool call.
+
+**Hard rules:**
+- Mac Claude never asks "do you want me to write this to disk?" — if the artifact is an INSTRUCTIONS file or a doc update, just write it.
+- Mac Claude never claims "I don't have filesystem access" or "I can't see your files." The Filesystem MCP is always available in this project. If a path returns access denied, the path is wrong, not the tool.
+- Mac Claude never narrates tool steps. Run the tool, report the outcome.
 
 ---
 
@@ -48,6 +81,13 @@ Numbered implementation steps with exact file paths.
 ## Verification
 Exact commands to run. Do not report success until all pass.
 ```
+
+### File location & naming
+
+- **Path:** `/Users/mizzy/Developer/Trivolta/INSTRUCTIONS_<NAME>.md` — always at the repo root, never in a subdirectory.
+- **Name:** `INSTRUCTIONS_<UPPER_SNAKE_CASE>.md`. For Phase 2.9 features use `INSTRUCTIONS_F<n>_<NAME>.md` (e.g. `INSTRUCTIONS_F2_FEEDBACK_CHANNEL.md`). For phase work use `INSTRUCTIONS_PHASE_<n.n.n>_<NAME>.md`.
+- **Written by:** Mac Claude only, via `Filesystem:write_file`.
+- **Tracker entry:** after writing the file, Mac Claude updates `TRIVOLTA_TRACKER.md` to mark the new INSTRUCTIONS file as written (✅) using `Filesystem:edit_file`.
 
 ---
 
