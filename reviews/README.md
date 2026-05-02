@@ -101,6 +101,7 @@ Two surrounding findings surfaced during verification, both important:
    in test_28 that idempotently seeds one category + three pending
    facts + three active distractors per fact via the service-role REST
    API.
+   **Resolved 2026-05-02 in commit `0d82516` — `ensure_spot_check_facts.js` seeds 1 category + 3 facts + 9 distractors before test_28.**
 
 2. **`run_tests.sh` masks Maestro failures via the unguarded pipe.**
    The runner does `if maestro test ... | tee -a "$LOG"; then ...`.
@@ -113,6 +114,7 @@ Two surrounding findings surfaced during verification, both important:
    higher-priority follow-up than any feature work; suggest a
    separate INSTRUCTIONS file to add `set -o pipefail` (or
    `${PIPESTATUS[0]}` checks) to `run_tests.sh`.
+   **Resolved 2026-05-02 in commit `0821da0` — `set -o pipefail` added to `run_tests.sh`. First post-fix full-suite run reported 26 passed, 1 failed; the newly-visible failure is test_27_feedback_submit (FAB modal body input not visible to Maestro after tap), masked since F2 ship and now triaged in a follow-up INSTRUCTIONS file.**
 
 3. **Spot-check screen has a real keyboard-dismiss bug** independent
    of the seeding issue. `mobile/app/admin/facts/spot-check.tsx` wraps
@@ -128,6 +130,7 @@ Two surrounding findings surfaced during verification, both important:
    a report and tapping Submit once will get the same swallowed-tap
    behavior. Suggest a follow-up INSTRUCTIONS file to add
    `keyboardShouldPersistTaps="handled"` to the ScrollView.
+   **Resolved 2026-05-02 in commit `0821da0` — `keyboardShouldPersistTaps="handled"` added to the spot-check ScrollView; test_28's tap-elsewhere workaround removed. Real users get the natural single-tap Submit flow.**
 
 Future reviews of seeding-dependent tests should use the same pattern:
 verify the failure mode end-to-end against `./run_tests.sh` AND check
