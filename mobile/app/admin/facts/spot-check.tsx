@@ -134,7 +134,11 @@ export default function AdminFactsSpotCheckScreen() {
   }
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.progressRow}>
         <View style={styles.progressChip} testID="spot-check-progress">
           <Text style={styles.progressText}>

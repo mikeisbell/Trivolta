@@ -17,6 +17,11 @@ set -a
 source maestro/.env.maestro
 set +a
 
+# pipefail so the `maestro test ... | tee` pipeline reports maestro's exit
+# code (PIPESTATUS[0]) instead of tee's. Without this the runner has been
+# silently reporting [Passed] for every failed test since at least F2.
+set -o pipefail
+
 LOG=~/trivolta_test_output.txt
 : > "$LOG"
 

@@ -133,10 +133,12 @@ for (var i = 0; i < SEED_FACTS.length; i++) {
   var need = DISTRACTORS_PER_FACT - have
   if (need > 0) {
     var rows = []
+    // Continue where a prior partial run left off; do not re-insert
+    // distractors already present. Index from `have + d`, not `d`.
     for (var d = 0; d < need; d++) {
       rows.push({
         fact_id: factId,
-        distractor_text: seed.distractors[d],
+        distractor_text: seed.distractors[have + d],
         authored_by: 'imported',
         is_active: true
       })

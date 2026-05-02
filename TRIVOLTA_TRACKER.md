@@ -163,6 +163,7 @@ Cross-cutting tooling — applies to every commit on every phase, not phase-boun
 ✅ Review pipeline fixes — INSTRUCTIONS_REVIEW_PIPELINE_FIXES.md (non-interactive `/simplify` via `--permission-mode acceptEdits`, forensic log moved out of working tree, every run lands one `chore:` commit)
 ✅ Reviewer full repo access — INSTRUCTIONS_REVIEWER_FULL_REPO_ACCESS.md (`run-review.sh` passes `--add-dir <repo-root>`; reviewer reads any repo file for code-quality findings — verified by re-reviewing F3 commit `a69392e`, which surfaced 2 blockers via cross-file analysis)
 ✅ F3 Blocker 1 fix — INSTRUCTIONS_F3_BLOCKER1_TEST_28_SEED.md (`ensure_spot_check_facts.js` seeds 1 category + 3 facts + 9 distractors before test_28; surfaced two related findings — `run_tests.sh` masks Maestro failures via unguarded pipe, and the spot-check `ScrollView` is missing `keyboardShouldPersistTaps="handled"` — both documented as follow-ups in `reviews/README.md`)
+✅ F3 Blocker 1 follow-ups — INSTRUCTIONS_F3_FOLLOWUP_FIXES.md (`run_tests.sh` pipefail/PIPESTATUS, spot-check `keyboardShouldPersistTaps`, `ensure_spot_check_facts.js` partial-seed indexing; removes test_28 keyboard-dismissal workaround. Surfaced 1 newly-visible failure: test_27_feedback_submit was masked from F2 onward — triage in next INSTRUCTIONS file.)
 
 ---
 
@@ -340,7 +341,6 @@ See Phase 2.9 Tranche 8 for release-gate items.
 - **Dev gameplay sees `pending` facts** — the verification gate is prod-only, so any garbage imported into local DB is immediately playable. If you import junk for testing, `dev-reset.sh` is the cheapest cleanup.
 - **`art` slug under-represented** — 76 facts vs ~400 in other slugs. The Trivia API's `arts_and_literature` tag distribution skews literary. Worth knowing if `art` category gameplay feels thin during iPhone testing. Folded into Pre-Beta Checklist.
 - **`Alert.alert` is iOS-only on React Native Web** — sign-out from /(tabs)/profile silently no-ops on Expo Web because Alert.alert isn't supported there. Workaround during admin work: clear localStorage + reload. Permanent fix folded into Phase 2.6.7. New admin code is required to use `window.confirm()` or custom modals instead.
-- **`run_tests.sh` exit-code masking** — when run without a booted iOS Simulator, the `tee` pipe masks `maestro test`'s non-zero exit code and the script reports "25 passed". Folded into Phase 2.6.7. Until then, always confirm a simulator is booted before trusting a green result.
 
 ---
 
@@ -389,6 +389,7 @@ See Phase 2.9 Tranche 8 for release-gate items.
 ✅ INSTRUCTIONS_REVIEW_PIPELINE_FIXES.md
 ✅ INSTRUCTIONS_REVIEWER_FULL_REPO_ACCESS.md
 ✅ INSTRUCTIONS_F3_BLOCKER1_TEST_28_SEED.md
+✅ INSTRUCTIONS_F3_FOLLOWUP_FIXES.md
 ⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md (covers F4 + F5; already on disk)
 ⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md (covers F6)
 ⬜ INSTRUCTIONS_F7_SHARED_DAILY_CHALLENGE.md
