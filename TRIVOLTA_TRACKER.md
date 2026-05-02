@@ -283,7 +283,6 @@ Tranches 1–4 are non-negotiable. They're what makes beta produce interpretable
 ### Deferred Pre-Beta Items (carry-forward, lower priority)
 
 ⬜ Cost optimization pass — prompt caching across all Anthropic-calling Edge Functions; consider Haiku for question rendering (~30% steady-state savings)
-⬜ run_tests.sh exit-code masking — folded into Phase 2.6.7.
 ⬜ Wikipedia excerpt-match calibration — measure miss rate across categories; consider switching to flatter HTML sources where Wikipedia consistently fails. Post-beta unless `fact_reports` data shows correctness issues.
 ⬜ Top up `art` slug coverage — currently 76 facts vs ~400 in other slugs. Either re-run more `arts_and_literature` batches or import a focused art-only dataset from another source.
 
