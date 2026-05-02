@@ -17,6 +17,12 @@ env:
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
 
+- runScript:
+    file: ./scripts/ensure_spot_check_facts.js
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+
 - assertVisible:
     id: "auth-email-input"
 
@@ -70,6 +76,18 @@ env:
 - tapOn:
     id: "spot-check-note-input"
 - inputText: "Maestro test report"
+
+# Dismiss the iOS software keyboard before tapping Submit. The
+# spot-check screen's ScrollView has no `keyboardShouldPersistTaps`,
+# so React Native's default ('never') makes the first tap on a sibling
+# button dismiss the keyboard instead of firing onPress. Maestro's
+# built-in `hideKeyboard` doesn't work in this app (the TextInput
+# doesn't expose a standard dismiss action), so we tap a non-interactive
+# Text element to dismiss it — Maestro's documented fallback. The
+# underlying screen bug (missing `keyboardShouldPersistTaps="handled"`
+# on the ScrollView) is documented in reviews/README.md.
+- tapOn:
+    id: "spot-check-correct"
 
 - tapOn:
     id: "spot-check-submit-incorrect"

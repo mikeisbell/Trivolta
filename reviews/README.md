@@ -84,3 +84,52 @@ read the feature commit's actual changes if relevant.
 Implementer Claude Code never edits files under `reviews/` except via
 `run-review.sh`. `simplify-log.md` files are owned by
 `simplify-and-verify.sh`. Hand-editing breaks the audit trail.
+
+## Calibration notes
+
+**2026-05-02 — F3 Blocker 1 verification (INSTRUCTIONS_F3_BLOCKER1_TEST_28_SEED.md).**
+The full-repo-access reviewer flagged a `[blocker]` against `a69392e`
+claiming test_28 fails on a fresh DB. **Verified: confirmed real.**
+Two surrounding findings surfaced during verification, both important:
+
+1. **Reviewer's blocker is genuinely correct.** `supabase db reset`
+   produces a DB with zero facts (because `supabase/seed.sql` is
+   empty). `get_next_spot_check_fact()` returns no rows. The spot-check
+   screen renders the empty state and `spot-check-fact-text` never
+   appears. Maestro times out on the assertion. Fix: new
+   `mobile/maestro/scripts/ensure_spot_check_facts.js` runScript step
+   in test_28 that idempotently seeds one category + three pending
+   facts + three active distractors per fact via the service-role REST
+   API.
+
+2. **`run_tests.sh` masks Maestro failures via the unguarded pipe.**
+   The runner does `if maestro test ... | tee -a "$LOG"; then ...`.
+   Without `set -o pipefail`, the pipeline's exit code is `tee`'s,
+   not maestro's. So when maestro fails the assertion, the script
+   still reports `[Passed]`. test_28 had been "passing" in this
+   masked sense from F3 onward. The reviewer's flag was actually
+   conservative — the real-world failure rate was 100%, not 0%.
+   **This is out of the F3 Blocker 1 spec scope** but is a
+   higher-priority follow-up than any feature work; suggest a
+   separate INSTRUCTIONS file to add `set -o pipefail` (or
+   `${PIPESTATUS[0]}` checks) to `run_tests.sh`.
+
+3. **Spot-check screen has a real keyboard-dismiss bug** independent
+   of the seeding issue. `mobile/app/admin/facts/spot-check.tsx` wraps
+   its content in a `ScrollView` with no
+   `keyboardShouldPersistTaps="handled"`. React Native's default
+   ('never') makes the first tap on the Submit-report button (after
+   focusing the note input) dismiss the keyboard instead of firing
+   `onPress`. The submit therefore never reaches the API on the
+   "incorrect" verdict path. The spec scope forbids modifying the
+   screen, so the test_28 fix uses Maestro's documented fallback
+   (tap a non-interactive Text element to dismiss the keyboard, then
+   tap Submit). The user-facing impact is real — a human user typing
+   a report and tapping Submit once will get the same swallowed-tap
+   behavior. Suggest a follow-up INSTRUCTIONS file to add
+   `keyboardShouldPersistTaps="handled"` to the ScrollView.
+
+Future reviews of seeding-dependent tests should use the same pattern:
+verify the failure mode end-to-end against `./run_tests.sh` AND check
+the raw Maestro output for `FAILED` lines (because of finding 2 above)
+before flagging or dismissing.
