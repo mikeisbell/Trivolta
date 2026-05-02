@@ -161,6 +161,7 @@ Cross-cutting tooling — applies to every commit on every phase, not phase-boun
 
 ✅ Automated code review phase — INSTRUCTIONS_AUTOMATED_REVIEW.md (`reviews/`, `run-review.sh`, `simplify-and-verify.sh`, `simplify-verify.cmds`)
 ✅ Review pipeline fixes — INSTRUCTIONS_REVIEW_PIPELINE_FIXES.md (non-interactive `/simplify` via `--permission-mode acceptEdits`, forensic log moved out of working tree, every run lands one `chore:` commit)
+✅ Reviewer full repo access — INSTRUCTIONS_REVIEWER_FULL_REPO_ACCESS.md (`run-review.sh` passes `--add-dir <repo-root>`; reviewer reads any repo file for code-quality findings — verified by re-reviewing F3 commit `a69392e`, which surfaced 2 blockers via cross-file analysis)
 
 ---
 
@@ -385,6 +386,7 @@ See Phase 2.9 Tranche 8 for release-gate items.
 ✅ INSTRUCTIONS_F3_FACT_SPOT_CHECK.md
 ✅ INSTRUCTIONS_AUTOMATED_REVIEW.md
 ✅ INSTRUCTIONS_REVIEW_PIPELINE_FIXES.md
+✅ INSTRUCTIONS_REVIEWER_FULL_REPO_ACCESS.md
 ⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md (covers F4 + F5; already on disk)
 ⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md (covers F6)
 ⬜ INSTRUCTIONS_F7_SHARED_DAILY_CHALLENGE.md

@@ -90,6 +90,15 @@ REVIEWS_DIR="$REPO_ROOT/reviews"
 PROMPT_FILE="$REVIEWS_DIR/PROMPT.md"
 OUTPUT_FILE="$REVIEWS_DIR/${COMMIT_SHA}.md"
 
+# Reviewer subprocess flags. Tested against claude 2.1.126.
+# --add-dir grants the subprocess read access to the Trivolta repo so the
+# reviewer can read surrounding code, find function definitions, check
+# existing tests, and detect drift from project conventions. Read-only
+# in 2.1.126 — the subprocess cannot write to files in the added dir
+# without an additional permission flag, which we deliberately do not
+# pass. See INSTRUCTIONS_REVIEWER_FULL_REPO_ACCESS.md for rationale.
+CLAUDE_REVIEW_FLAGS=(--output-format text --add-dir "$REPO_ROOT")
+
 if [[ ! -f "$PROMPT_FILE" ]]; then
   echo "ERROR: prompt template missing: $PROMPT_FILE" >&2
   exit 1
@@ -164,7 +173,7 @@ PY
 # ---------------------------------------------------------------------------
 echo "Running conformance review for ${SHORT_SHA}..."
 
-if ! claude -p "$(cat "$PROMPT_TMP")" --output-format text > "$OUTPUT_FILE" 2>"$TMPDIR_REVIEW/claude.err"; then
+if ! claude -p "$(cat "$PROMPT_TMP")" "${CLAUDE_REVIEW_FLAGS[@]}" > "$OUTPUT_FILE" 2>"$TMPDIR_REVIEW/claude.err"; then
   echo "ERROR: reviewer subprocess failed:" >&2
   cat "$TMPDIR_REVIEW/claude.err" >&2
   rm -f "$OUTPUT_FILE"

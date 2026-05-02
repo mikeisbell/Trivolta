@@ -43,6 +43,14 @@ generated_at: <ISO-8601 UTC>
 `claude` CLI version — the CLI version is informative and is recorded
 in this README's preamble, not per-review.
 
+The reviewer subprocess has full read access to the Trivolta repository
+(`run-review.sh` passes `--add-dir <repo-root>` to `claude -p`). Reviews
+after 2026-05-02 may reference files outside the diff. The chore-commit
+review limitation noted in earlier reviews — that conformance items
+implemented in prior commits couldn't be confirmed from the chore
+artifact alone — no longer applies: chore-commit reviewers can now
+read the feature commit's actual changes if relevant.
+
 ## Body sections (in order)
 
 1. `# Code review — <short sha>`
