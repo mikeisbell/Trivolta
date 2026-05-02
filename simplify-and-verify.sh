@@ -98,7 +98,6 @@ EXTERNAL_LOG_DIR="${TMPDIR:-/tmp}/trivolta-simplify-logs"
 mkdir -p "$EXTERNAL_LOG_DIR"
 EXTERNAL_LOG="$EXTERNAL_LOG_DIR/${SHORT_SHA}.md"
 REPO_LOG="$REVIEWS_DIR/${SHORT_SHA}.simplify-log.md"
-LOG_FILE="$EXTERNAL_LOG"
 
 # ---------------------------------------------------------------------------
 # Version gate — /simplify shipped in claude 2.1.63.
@@ -123,12 +122,6 @@ if [[ -z "$CLAUDE_VERSION" ]] || ! version_ge "$CLAUDE_VERSION" "2.1.63"; then
   exit 0
 fi
 
-# ---------------------------------------------------------------------------
-# commit_log_artifact — single helper that closes every branch.
-# Copies the external forensic log into reviews/, stages it, optionally
-# stages all other changes (when /simplify produced accepted changes),
-# and commits with the supplied message.
-# ---------------------------------------------------------------------------
 commit_log_artifact() {
   local commit_msg="$1"
   local stage_all="${2:-no}"
@@ -155,10 +148,10 @@ commit_log_artifact() {
   echo "## stdout"
   echo
   echo '```'
-} > "$LOG_FILE"
+} > "$EXTERNAL_LOG"
 
 set +e
-claude -p '/simplify' "${CLAUDE_SIMPLIFY_FLAGS[@]}" >> "$LOG_FILE" 2>&1
+claude -p '/simplify' "${CLAUDE_SIMPLIFY_FLAGS[@]}" >> "$EXTERNAL_LOG" 2>&1
 SIMPLIFY_EXIT=$?
 set -e
 
@@ -166,7 +159,7 @@ set -e
   echo '```'
   echo
   echo "claude /simplify exit: ${SIMPLIFY_EXIT}"
-} >> "$LOG_FILE"
+} >> "$EXTERNAL_LOG"
 
 # ---------------------------------------------------------------------------
 # Branch on /simplify's actual effect on the working tree.
