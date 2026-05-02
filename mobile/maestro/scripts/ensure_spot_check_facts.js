@@ -36,6 +36,7 @@ var HEADERS = {
 var CATEGORY_SLUG = 'spot-check-test'
 var CATEGORY_DISPLAY = 'Spot Check Test'
 var SOURCE_ORIGIN = 'spot_check_maestro_seed'
+var DISTRACTORS_PER_FACT = 3
 
 var SEED_FACTS = [
   {
@@ -55,7 +56,6 @@ var SEED_FACTS = [
   }
 ]
 
-// 1. Ensure the test category exists.
 var catList = http.get(
   SUPABASE_URL + '/rest/v1/categories?slug=eq.' + CATEGORY_SLUG + '&select=id',
   { headers: HEADERS }
@@ -81,7 +81,6 @@ if (existingCats && existingCats.length > 0) {
   }
 }
 
-// 2. Ensure each seed fact exists with 3 active distractors.
 var createdFacts = 0
 var createdDistractors = 0
 
@@ -122,7 +121,6 @@ for (var i = 0; i < SEED_FACTS.length; i++) {
     createdFacts += 1
   }
 
-  // Count active distractors for this fact.
   var distList = http.get(
     SUPABASE_URL +
       '/rest/v1/distractors?fact_id=eq.' +
@@ -132,7 +130,7 @@ for (var i = 0; i < SEED_FACTS.length; i++) {
   )
   var existingDistractors = JSON.parse(distList.body)
   var have = existingDistractors ? existingDistractors.length : 0
-  var need = 3 - have
+  var need = DISTRACTORS_PER_FACT - have
   if (need > 0) {
     var rows = []
     for (var d = 0; d < need; d++) {
@@ -143,10 +141,15 @@ for (var i = 0; i < SEED_FACTS.length; i++) {
         is_active: true
       })
     }
-    http.post(SUPABASE_URL + '/rest/v1/distractors', {
+    var distCreate = http.post(SUPABASE_URL + '/rest/v1/distractors', {
       headers: HEADERS,
       body: JSON.stringify(rows)
     })
+    var newDist = JSON.parse(distCreate.body)
+    if (!newDist || newDist.length === 0) {
+      output.spotCheckSeed = 'failed: distractor insert returned no rows for "' + seed.fact + '"'
+      throw new Error(output.spotCheckSeed)
+    }
     createdDistractors += need
   }
 }
