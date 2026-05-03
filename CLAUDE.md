@@ -164,12 +164,12 @@ Always run the full Maestro suite after any change — all tests must pass befor
 
 ## Manual Test Verification
 
-Some tests are deferred as non-automatable under the current architecture and are excluded from `./run_tests.sh` via the `SKIP_TESTS` array in `mobile/run_tests.sh`. Each requires a one-line manual check before every beta release:
+Some tests are deferred as non-automatable under the current architecture and are excluded from the `./run_tests.sh` full-suite glob loop — either via the `SKIP_TESTS` array in `mobile/run_tests.sh`, or by file non-existence (the YAML was never written). Each deferred test requires a one-line manual check before every beta release:
 
-- **test_18 — QuestionScreen error/retry.** Kill the `solo-question` Edge Function mid-game (e.g. stop the Supabase functions serve process), verify the error UI appears with a Retry button, restart the function, tap Retry, verify the question loads.
-- **test_27 — Feedback FAB.** From any authenticated screen, tap the floating ✎ button bottom-right, verify the feedback modal opens, type a message, tap Send, verify the toast appears.
+- **test_18 — QuestionScreen error/retry.** No YAML exists; excluded by non-existence. Kill the `solo-question` Edge Function mid-game (e.g. stop the Supabase functions serve process), verify the error UI appears with a Retry button, restart the function, tap Retry, verify the question loads.
+- **test_27 — Feedback FAB.** Excluded via `SKIP_TESTS`. From any authenticated screen, tap the floating ✎ button bottom-right, verify the feedback modal opens, type a message, tap Send, verify the toast appears.
 
-Add a manual-verification entry here whenever a test is added to `SKIP_TESTS` in `mobile/run_tests.sh`.
+Add a manual-verification entry here whenever a test is deferred (whether via `SKIP_TESTS` or by leaving a YAML unwritten).
 
 ## Code Review Phase
 
