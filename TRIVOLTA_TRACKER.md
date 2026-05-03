@@ -87,8 +87,10 @@
 ✅ test_24 — back navigation mid-game + results home
 ✅ test_25 — join lobby error flow
 ✅ test_26 — lobby results navigation (home + play-again navigation only)
-✅ test_27 — feedback submit (FAB → modal → submit → toast)
+⏸ test_27 — feedback submit (deferred, non-automatable; see Known Issues)
 ✅ test_28 — admin fact spot-check (correct + incorrect verdicts)
+
+26 active tests pass; test_27 is deferred via `SKIP_TESTS` in `mobile/run_tests.sh` and requires manual verification before each beta release per CLAUDE.md "Manual Test Verification".
 
 All active tests are self-contained — each guarantees its own test user via ensure_test_user_02.js
 (test_28 also provisions testuser_maestro_admin via ensure_admin_test_user.js).
@@ -164,6 +166,8 @@ Cross-cutting tooling — applies to every commit on every phase, not phase-boun
 ✅ Reviewer full repo access — INSTRUCTIONS_REVIEWER_FULL_REPO_ACCESS.md (`run-review.sh` passes `--add-dir <repo-root>`; reviewer reads any repo file for code-quality findings — verified by re-reviewing F3 commit `a69392e`, which surfaced 2 blockers via cross-file analysis)
 ✅ F3 Blocker 1 fix — INSTRUCTIONS_F3_BLOCKER1_TEST_28_SEED.md (`ensure_spot_check_facts.js` seeds 1 category + 3 facts + 9 distractors before test_28; surfaced two related findings — `run_tests.sh` masks Maestro failures via unguarded pipe, and the spot-check `ScrollView` is missing `keyboardShouldPersistTaps="handled"` — both documented as follow-ups in `reviews/README.md`)
 ✅ F3 Blocker 1 follow-ups — INSTRUCTIONS_F3_FOLLOWUP_FIXES.md (`run_tests.sh` pipefail/PIPESTATUS, spot-check `keyboardShouldPersistTaps`, `ensure_spot_check_facts.js` partial-seed indexing; removes test_28 keyboard-dismissal workaround. Surfaced 1 newly-visible failure: test_27_feedback_submit was masked from F2 onward — triage in next INSTRUCTIONS file.)
+⏸ test_27 fix — INSTRUCTIONS_TEST_27_MODAL_FIX.md (Modal → in-tree overlay refactor landed but does NOT fix test_27; diagnosis revealed root cause is Maestro synthetic taps not reaching the FAB's `onPress` under react-native-screens 4.16 + newArchEnabled, not the Modal hierarchy hypothesis)
+✅ test_27 defer — INSTRUCTIONS_TEST_27_DEFER.md (committed the kept refactor; deferred test_27 via `SKIP_TESTS` in `run_tests.sh`; FAB verified working for real users; manual verification required before beta per new CLAUDE.md "Manual Test Verification" section)
 
 ---
 
@@ -333,6 +337,7 @@ See Phase 2.9 Tranche 8 for release-gate items.
 - **Achievements computed client-side** — unlock states derived from `gamesPlayed`, `bestStreak` etc. locally. No server-side achievement events, no push notifications on unlock. Acceptable for beta.
 - **Android not tested** — all Maestro tests run on iOS Simulator only. Android parity assumed but untested.
 - **test_18 manual-only** — QuestionScreen error/retry state cannot be automated in Maestro (requires killing Edge Functions mid-test). Must be manually verified before each beta release.
+- **test_27 non-automatable** — Maestro synthetic taps do not reach the feedback FAB's onPress handler under react-native-screens 4.16 + newArchEnabled. The FAB works for real users (manually verified 2026-05-02 on Mike's iPhone via Expo Go). Test deferred via `SKIP_TESTS` in `run_tests.sh`; manual verification required before each beta release per CLAUDE.md "Manual Test Verification". Possible recoveries: (a) react-native-screens upgrade if a future version fixes the new-arch tap routing; (b) test on `newArchEnabled: false`; (c) deep-link workaround (false-confidence; rejected).
 - **lobby/results play-again not fully tested** — test_26 verifies navigation to `/lobby/create` only; does not verify that the full subsequent create-lobby flow completes successfully.
 - **AI source-citation excerpt-match misses on dynamically rendered pages** — Wikipedia and similar JS-rendered sites sometimes return raw HTML where the AI's quoted excerpt is not a substring. The mechanical check correctly flags these as failed. Combined with CIA Factbook deprecation (302 → farewell page), the only reliably matching authoritative source is Britannica. Not a code defect — working as designed. Drove the 2.6.3b/c/cross-check parking decision.
 - **AI cross-check unvalidated** — the cross-check pass in `fact-bank-auto-seed` was never observed firing end-to-end because the mechanical-check gate failed first on every smoke-test fact. The architecture may be correct or may be broken; we don't know. Parked alongside 2.6.3b. Beta relies on `fact_reports` instead.
@@ -389,6 +394,8 @@ See Phase 2.9 Tranche 8 for release-gate items.
 ✅ INSTRUCTIONS_REVIEWER_FULL_REPO_ACCESS.md
 ✅ INSTRUCTIONS_F3_BLOCKER1_TEST_28_SEED.md
 ✅ INSTRUCTIONS_F3_FOLLOWUP_FIXES.md
+⏸ INSTRUCTIONS_TEST_27_MODAL_FIX.md (kept on disk; refactor landed but test fix did not — root cause was elsewhere)
+✅ INSTRUCTIONS_TEST_27_DEFER.md
 ⬜ INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md (covers F4 + F5; already on disk)
 ⬜ INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md (covers F6)
 ⬜ INSTRUCTIONS_F7_SHARED_DAILY_CHALLENGE.md

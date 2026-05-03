@@ -162,6 +162,15 @@ The generated `ios/` directory is gitignored — this command must be re-run aft
 
 Always run the full Maestro suite after any change — all tests must pass before reporting done. Never pipe test output through `| tail -N` — it can truncate critical failure details. When a test fails, read the full debug output before attempting a fix. Do not guess at root cause.
 
+## Manual Test Verification
+
+Some tests are deferred as non-automatable under the current architecture and are excluded from `./run_tests.sh` via the `SKIP_TESTS` array in `mobile/run_tests.sh`. Each requires a one-line manual check before every beta release:
+
+- **test_18 — QuestionScreen error/retry.** Kill the `solo-question` Edge Function mid-game (e.g. stop the Supabase functions serve process), verify the error UI appears with a Retry button, restart the function, tap Retry, verify the question loads.
+- **test_27 — Feedback FAB.** From any authenticated screen, tap the floating ✎ button bottom-right, verify the feedback modal opens, type a message, tap Send, verify the toast appears.
+
+Add a manual-verification entry here whenever a test is added to `SKIP_TESTS` in `mobile/run_tests.sh`.
+
 ## Code Review Phase
 
 Every commit on a development task gets two automated passes after the implementer's normal verification suite passes: `bash simplify-and-verify.sh` (quality / `/simplify`) and `bash run-review.sh <commit-sha> <INSTRUCTIONS path>` (conformance review). Both are mandatory and run via the wrapper scripts; do not invoke `claude /simplify` or `claude -p` directly.
