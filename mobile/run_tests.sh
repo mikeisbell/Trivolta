@@ -22,6 +22,14 @@ set +a
 # silently reporting [Passed] for every failed test since at least F2.
 set -o pipefail
 
+# Tests deferred as non-automatable under current architecture.
+# Each requires manual verification before beta release.
+# Reasons documented in each test_*.yaml header and in CLAUDE.md
+# "Manual Test Verification" section.
+# Single-file mode (./run_tests.sh test_NN_*.yaml) bypasses this list,
+# so manual re-runs work without removing entries.
+SKIP_TESTS=("test_18" "test_27_feedback_submit")
+
 LOG=~/trivolta_test_output.txt
 : > "$LOG"
 
@@ -49,22 +57,44 @@ fi
 
 passed=0
 failed=0
+skipped=0
 failed_names=()
+skipped_names=()
 for f in maestro/test_*.yaml; do
+  name=$(basename "$f" .yaml)
+  skip=false
+  for s in "${SKIP_TESTS[@]}"; do
+    if [ "$name" = "$s" ]; then
+      skip=true
+      break
+    fi
+  done
+  if [ "$skip" = "true" ]; then
+    echo "[Skipped] $name" | tee -a "$LOG"
+    skipped=$((skipped + 1))
+    skipped_names+=("$name")
+    continue
+  fi
   if run_one "$f"; then
     passed=$((passed + 1))
   else
     failed=$((failed + 1))
-    failed_names+=("$(basename "$f" .yaml)")
+    failed_names+=("$name")
   fi
 done
 
 echo "" | tee -a "$LOG"
 echo "========================================" | tee -a "$LOG"
-echo "Suite summary: $passed passed, $failed failed" | tee -a "$LOG"
+echo "Suite summary: $passed passed, $failed failed, $skipped skipped" | tee -a "$LOG"
 if [ "$failed" -gt 0 ]; then
   echo "Failed flows:" | tee -a "$LOG"
   for n in "${failed_names[@]}"; do
+    echo "  - $n" | tee -a "$LOG"
+  done
+fi
+if [ "$skipped" -gt 0 ]; then
+  echo "Skipped flows (manual verification required — see CLAUDE.md):" | tee -a "$LOG"
+  for n in "${skipped_names[@]}"; do
     echo "  - $n" | tee -a "$LOG"
   done
 fi

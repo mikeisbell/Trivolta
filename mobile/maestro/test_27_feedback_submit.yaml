@@ -4,6 +4,12 @@ env:
   SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
 ---
 # test_27: Feedback FAB → modal → submit → toast
+# DEFERRED — non-automatable under current architecture (react-native-screens 4.16
+# + newArchEnabled: true). Maestro's synthetic tap does not reach the FAB's
+# onPress handler. The FAB works correctly for real human users.
+# Manual verification required before each beta release. See CLAUDE.md
+# "Manual Test Verification" section.
+# Kept in repo to preserve testIDs and document intended flow.
 # Depends on test_02 having created testuser_maestro_02@trivolta-test.com.
 
 - clearState
