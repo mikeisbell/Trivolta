@@ -28,7 +28,9 @@ set -o pipefail
 # "Manual Test Verification" section.
 # Single-file mode (./run_tests.sh test_NN_*.yaml) bypasses this list,
 # so manual re-runs work without removing entries.
-SKIP_TESTS=("test_18" "test_27_feedback_submit")
+# test_18 has no yaml file — it is omitted from the suite by non-existence,
+# not by this list.
+SKIP_TESTS=("test_27_feedback_submit")
 
 LOG=~/trivolta_test_output.txt
 : > "$LOG"
