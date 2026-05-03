@@ -9,7 +9,6 @@ import {
   useState,
 } from 'react'
 import {
-  Modal,
   Platform,
   StyleSheet,
   Switch,
@@ -186,14 +185,21 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         </TouchableOpacity>
       )}
 
-      <Modal
-        visible={modalOpen}
-        animationType="fade"
-        transparent
-        onRequestClose={closeModal}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+      {/*
+        In-tree overlay (sibling View, not React Native <Modal>) so
+        Maestro's view inspector can see the testIDs inside. RN's
+        <Modal> renders in a separate UIViewController on iOS that
+        Maestro doesn't reliably descend into.
+        Known limitation: Android hardware-back does not dismiss this
+        overlay. Acceptable for current beta scope; revisit with a
+        BackHandler listener if Android becomes a target.
+      */}
+      {modalOpen && (
+        <View
+          style={[styles.modalBackdrop, styles.overlayAbsolute]}
+          pointerEvents="auto"
+        >
+          <View style={styles.modalCard} pointerEvents="auto">
             <Text style={styles.modalTitle}>Send feedback</Text>
 
             <TextInput
@@ -249,7 +255,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
             </View>
           </View>
         </View>
-      </Modal>
+      )}
 
       {toastVisible && (
         <View
@@ -294,6 +300,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
+  },
+  overlayAbsolute: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   modalCard: {
     width: '100%',
