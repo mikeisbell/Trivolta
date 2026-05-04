@@ -77,8 +77,13 @@ env:
     id: "spot-check-note-input"
 - inputText: "Maestro test report"
 
-# Note: keyboardShouldPersistTaps="handled" on the spot-check ScrollView
-# is what makes the natural single-tap Submit-report flow work.
+# Dismiss the on-screen keyboard before tapping Submit. On iPhone 17 /
+# iOS 26.2 the Submit button renders below the keyboard fold; without
+# this dismiss step Maestro's tap lands on the keyboard. We tap a
+# non-interactive Text element (per Maestro docs) since this app's
+# TextInput exposes no standard hideKeyboard target.
+- tapOn:
+    id: "spot-check-correct"
 - tapOn:
     id: "spot-check-submit-incorrect"
 
