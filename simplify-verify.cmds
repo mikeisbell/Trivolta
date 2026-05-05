@@ -3,4 +3,5 @@
 # skipped. Each line is invoked with `bash -c "<line>"` from the repo root.
 # The first non-zero exit code aborts the verification run.
 cd mobile && npx tsc --noEmit
+bash verify-consistency.sh
 cd mobile && ./run_tests.sh
