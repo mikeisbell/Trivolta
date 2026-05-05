@@ -80,12 +80,29 @@ and only after grepping to confirm):
   currently defined and every other file that references it. If two files
   define the same concept differently, that is drift — surface to Mike
   before continuing.
+- **TestIDs and test files affected.** When a spec changes UI structure
+  (removes a card, adds a screen, renames an element) or changes any element
+  carrying a `testID`, list every Maestro YAML flow under `mobile/maestro/`
+  that references the affected testID(s). Search by the testID string itself,
+  not by filename — a test named `test_08_solo_game_loop.yaml` may reference
+  a testID like `home-category-custom` even though its filename gives no hint.
+  Each affected test must end up in the spec's "Sites this affects" section
+  in one of the three buckets (Modified / Intentionally unchanged / Deferred).
 - **Routes or paths this spec touches.** Every screen, deep link, or URL
   pattern that uses them.
 - **Error codes, status enums, or response shapes this spec touches.** Where
   defined, where consumed.
 - **Existing shared modules that should be reused.** If a relevant module
   does not exist and this spec would create a duplicate, surface that.
+- **`verify-consistency.sh` checks the spec must clear or preserve.** If the
+  spec proposes changes that should clear a currently-failing check, name the
+  check (A1, A2, B1, C1, D1, D2) and confirm by inspection that the proposed
+  fix actually changes what the check greps for. If the proposed fix would
+  leave the grep target intact (e.g., moving a string into a JSX comment that
+  the check still scans, or whitelisting via a path the check doesn't honor),
+  the proposed fix is wrong — redesign before continuing. The check
+  definitions live in `verify-consistency.sh` and are short enough to read in
+  full when designing a fix.
 
 This section forces cross-file thinking at spec time, before any code is
 written. If the grep reveals drift, the spec must either fix it in scope or
