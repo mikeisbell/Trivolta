@@ -115,7 +115,8 @@ export default function CustomCategoryScreen() {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Any topic, instantly</Text>
-            <Text style={styles.headerSub}>AI generates your quiz in seconds</Text>
+            {/* Beta hide: original copy claimed instant generation; full text preserved in TRIVOLTA_TRACKER Post-Beta Restoration entry. */}
+            <Text style={styles.headerSub}>Pick a topic and start playing</Text>
           </View>
           <View style={styles.backBtn} />
         </View>
@@ -188,7 +189,8 @@ export default function CustomCategoryScreen() {
                 </View>
                 <View style={styles.trendingInfo}>
                   <Text style={styles.trendingLabel}>{item.label}</Text>
-                  <Text style={styles.trendingMeta}>{item.plays} plays today · AI-generated</Text>
+                  {/* Beta hide: trailing meta originally claimed automatic generation; full text in TRIVOLTA_TRACKER Post-Beta Restoration entry. */}
+                  <Text style={styles.trendingMeta}>{item.plays} plays today</Text>
                 </View>
                 <Text style={styles.trendingChevron}>›</Text>
               </TouchableOpacity>

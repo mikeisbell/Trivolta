@@ -36,14 +36,7 @@ env:
 
 # Start a quiz
 - tapOn:
-    id: "home-category-custom"
-- waitForAnimationToEnd
-- assertVisible:
-    id: "custom-category-input"
-- tapOn:
-    id: "custom-category-prompt-nasa-missions"
-- tapOn:
-    id: "custom-category-submit"
+    id: "home-category-science"
 
 # Answer all 10 questions — always tap answer-0, then next
 - extendedWaitUntil:

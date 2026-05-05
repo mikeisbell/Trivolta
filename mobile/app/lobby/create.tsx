@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  View, Text, TouchableOpacity, TextInput, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { useRouter } from 'expo-router'
@@ -11,7 +11,6 @@ const CATEGORIES = [
   { id: 'science',     label: 'Science',     emoji: '🔬' },
   { id: 'pop_culture', label: 'Pop culture', emoji: '🎬' },
   { id: 'history',     label: 'History',     emoji: '🏛️' },
-  { id: 'custom',      label: 'Any topic',   emoji: '✨' },
 ] as const
 
 type CategoryId = typeof CATEGORIES[number]['id']
@@ -19,16 +18,12 @@ type CategoryId = typeof CATEGORIES[number]['id']
 export default function CreateLobbyScreen() {
   const router = useRouter()
   const [selected, setSelected] = useState<CategoryId | null>(null)
-  const [customText, setCustomText] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const effectiveCategory =
-    selected === 'custom'
-      ? customText.trim()
-      : selected
-        ? CATEGORIES.find(c => c.id === selected)!.label
-        : ''
+  const effectiveCategory = selected
+    ? CATEGORIES.find(c => c.id === selected)!.label
+    : ''
 
   const canCreate = effectiveCategory.length > 0
 
@@ -65,7 +60,6 @@ export default function CreateLobbyScreen() {
           <View style={styles.grid}>
             {CATEGORIES.map((cat) => {
               const isSelected = selected === cat.id
-              const isCustom = cat.id === 'custom'
               return (
                 <TouchableOpacity
                   key={cat.id}
@@ -73,8 +67,6 @@ export default function CreateLobbyScreen() {
                   style={[
                     styles.catCard,
                     isSelected && styles.catCardSelected,
-                    isCustom && styles.catCardCustom,
-                    isCustom && isSelected && styles.catCardCustomSelected,
                   ]}
                   activeOpacity={0.8}
                   onPress={() => {
@@ -90,21 +82,6 @@ export default function CreateLobbyScreen() {
               )
             })}
           </View>
-
-          {/* Custom topic input — only shown when 'Any topic' is selected */}
-          {selected === 'custom' && (
-            <TextInput
-              testID="create-lobby-custom-input"
-              style={styles.customInput}
-              placeholder="e.g. 90s video games, marine biology…"
-              placeholderTextColor={colors.textMuted}
-              value={customText}
-              onChangeText={t => { setCustomText(t); setError('') }}
-              autoFocus
-              returnKeyType="done"
-              maxLength={60}
-            />
-          )}
 
           {/* Error */}
           {error !== '' && (

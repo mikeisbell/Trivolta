@@ -30,7 +30,12 @@ set -o pipefail
 # so manual re-runs work without removing entries.
 # test_18 has no yaml file — it is omitted from the suite by non-existence,
 # not by this list.
-SKIP_TESTS=("test_27_feedback_submit")
+SKIP_TESTS=(
+  "test_27_feedback_submit"
+  "test_05_custom_category"
+  "test_21_custom_category_interactions"
+  "test_22_create_lobby_custom_topic"
+)
 
 LOG=~/trivolta_test_output.txt
 : > "$LOG"

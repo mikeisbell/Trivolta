@@ -8,12 +8,23 @@ import { fetchDailyChallenge } from '../../lib/api'
 import type { DailyChallenge } from '../../lib/types'
 import { colors, radius, spacing } from '../../lib/theme'
 
-const CATEGORIES = [
+// Type union retains 'custom' / 'ai' so dead branches (PLAYABLE_CATEGORIES
+// filter, badgeType === 'ai' style ternaries) stay compilable as restoration
+// material per INSTRUCTIONS_HIDE_CUSTOM_CATEGORY_FOR_BETA.md.
+type CategoryDef = {
+  id: 'science' | 'pop_culture' | 'history' | 'custom'
+  label: string
+  emoji: string
+  count: string
+  badge: string
+  badgeType: '' | 'hot' | 'new' | 'ai'
+}
+
+const CATEGORIES: readonly CategoryDef[] = [
   { id: 'science', label: 'Science', emoji: '🔬', count: '800+', badge: 'Hot', badgeType: 'hot' },
   { id: 'pop_culture', label: 'Pop culture', emoji: '🎬', count: '1K+', badge: 'New', badgeType: 'new' },
   { id: 'history', label: 'History', emoji: '🏛️', count: '600+', badge: '', badgeType: '' },
-  { id: 'custom', label: 'Any topic', emoji: '✨', count: 'Ask anything', badge: 'AI', badgeType: 'ai' },
-] as const
+]
 
 const PLAYABLE_CATEGORIES = CATEGORIES.filter((cat) => cat.id !== 'custom')
 
@@ -110,10 +121,7 @@ export default function HomeScreen() {
                     cat.badgeType === 'ai' && styles.catCardAI,
                   ]}
                   activeOpacity={0.8}
-                  onPress={() => cat.id === 'custom'
-                    ? router.push({ pathname: '/custom-category' })
-                    : router.push({ pathname: '/question', params: { category: cat.label } })
-                  }
+                  onPress={() => router.push({ pathname: '/question', params: { category: cat.label } })}
                 >
                   <View style={styles.catTop}>
                     <Text style={styles.catEmoji}>{cat.emoji}</Text>
@@ -135,7 +143,7 @@ export default function HomeScreen() {
                     styles.catName,
                     cat.badgeType === 'ai' && styles.catNameAI,
                   ]}>{cat.label}</Text>
-                  <Text style={styles.catCount}>{cat.count} {cat.id !== 'custom' ? 'questions' : ''}</Text>
+                  <Text style={styles.catCount}>{cat.count} questions</Text>
                 </TouchableOpacity>
               ))}
             </View>

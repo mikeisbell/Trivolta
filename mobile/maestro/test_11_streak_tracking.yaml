@@ -36,12 +36,7 @@ env:
 
 # Start a quiz
 - tapOn:
-    id: "home-category-custom"
-- waitForAnimationToEnd
-- tapOn:
-    id: "custom-category-prompt-nasa-missions"
-- tapOn:
-    id: "custom-category-submit"
+    id: "home-category-science"
 
 # Q1 — answer and advance
 - extendedWaitUntil:
