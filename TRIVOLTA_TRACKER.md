@@ -405,3 +405,10 @@ See Phase 2.9 Tranche 8 for release-gate items.
 ⬜ INSTRUCTIONS_F11_F12_SKILL_PARAPHRASING.md
 ⬜ INSTRUCTIONS_F13_F14_FRIEND_SYSTEM.md
 ⬜ INSTRUCTIONS_F15_F16_F17_PUSH_NOTIFICATIONS.md
+
+
+## Post-Beta Restoration
+
+Items relaxed for beta that must be revisited before opening to non-beta users.
+
+- **`facts` and `distractors` RLS read policies** — Migration `20240110000000_relax_facts_read_for_beta.sql` replaced `facts_read_verified` with `facts_read_authenticated` (allowing authenticated users to read facts regardless of `verification_status`) and replaced `distractors_read_active_verified` with `distractors_read_active_authenticated` (dropping the parent-fact `verification_status = 'verified'` requirement, keeping the `is_active = true` filter). Both originals gated reads on the parent fact being verified; relaxing them in lockstep is required because solo-question now reads via the user's JWT (no service role) and OpenTrivia DB facts are stored as `pending`. Decision: revisit before non-beta launch — either restore the gates (and define a verification model for externally-imported facts) or commit to the relaxed policies permanently. Migration comment carries the full restoration SQL for both policies.
