@@ -69,6 +69,29 @@ Every INSTRUCTIONS\_\*.md must contain these sections in order:
 ## Task
 One paragraph — what is being built and why.
 
+## Pre-flight context
+A grep-pass enumeration completed by Mac Claude before drafting this spec.
+Surfaces the cross-file landscape so drift is visible up front.
+
+Required subsections (use "None" only if a subsection truly does not apply,
+and only after grepping to confirm):
+
+- **Strings, slugs, or constants this spec touches.** For each, where it is
+  currently defined and every other file that references it. If two files
+  define the same concept differently, that is drift — surface to Mike
+  before continuing.
+- **Routes or paths this spec touches.** Every screen, deep link, or URL
+  pattern that uses them.
+- **Error codes, status enums, or response shapes this spec touches.** Where
+  defined, where consumed.
+- **Existing shared modules that should be reused.** If a relevant module
+  does not exist and this spec would create a duplicate, surface that.
+
+This section forces cross-file thinking at spec time, before any code is
+written. If the grep reveals drift, the spec must either fix it in scope or
+explicitly defer it (with a tracker entry pointing at a follow-up
+INSTRUCTIONS file).
+
 ## Verifiable objective
 Bullet list of exact pass/fail checks. Every item must be binary.
 
@@ -77,6 +100,20 @@ What Claude Code must NOT do. Be explicit.
 
 ## Steps
 Numbered implementation steps with exact file paths.
+
+## Sites this affects
+Every file in the repo that references the concept this spec changes. Each
+file must be in one of three buckets:
+
+- **Modified** — the diff changes this file. Listed with a one-line
+  description of the change.
+- **Intentionally unchanged** — the spec preserves this file's behavior;
+  one sentence says why it is correct that nothing here changes.
+- **Deferred** — the spec does not touch this file but acknowledges drift
+  exists; pointer to a tracker entry or follow-up INSTRUCTIONS file.
+
+If a file references the concept and is not in one of these buckets, the
+spec is incomplete — redo the Pre-flight context grep.
 
 ## Verification
 
@@ -91,6 +128,8 @@ The implementer does not return control to Mike until run-review.sh exits 0.
 ```
 
 The two-script tail is mandatory in every future INSTRUCTIONS file's Verification section.
+
+**Pre-flight context and Sites this affects are mandatory.** They exist because the four-criteria diff review is local — it asks whether THIS diff matches THIS spec — and nothing else in the workflow looks at cross-file drift. The Tech Debt Audit (2026-05-04) found ~40 items, the majority of which were drift between layers (mobile↔server, screen↔screen, doc↔code) that no per-diff review would have caught. Pre-flight forces the cross-file homework at spec time; Sites this affects forces a final cross-file scan before the diff lands. If either section is missing or pencilled in as "None" without grep evidence, the INSTRUCTIONS file is incomplete and Claude Code refuses to start.
 
 ### File location & naming
 

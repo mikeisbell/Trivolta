@@ -128,7 +128,7 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 
 **Beta-verification posture (decided 2026-04-29):** AI-verifies-AI cross-check is parked. Two reasons surfaced during 2.6.3a manual testing: (1) the mechanical excerpt-match check fails on most authoritative sources — Wikipedia is JS-rendered (excerpts not in raw HTML), CIA World Factbook is deprecated (302 → farewell page), Britannica is the only reliably matching source; and (2) the cross-check itself was never validated end-to-end because the Paris/Berlin smoke test bailed at `failure_stage: mechanical_check` before the cross-check fired. Beta will ship with possibly-imperfect facts; the `fact_reports` table is the real verification mechanism via player feedback. The 2.6.8 verification gate is informational-only for beta, not a hard blocker.
 
-**Beta data source (decided 2026-04-29):** ~3,976 facts from The Trivia API populated locally via 2.6.3e. Distributed across 10 Trivolta slugs (general 663, pop-culture 454, music 446, history 424, science 419, film 418, literature 404, geography 381, sports 291, art 76). Imported as `pending`; visible to dev/Simulator gameplay because the verification gate is prod-only. Re-runnable on any fresh `dev-reset`.
+**Beta data source (updated 2026-05-04):** The Trivia API questions were wiped (non-commercial license incompatible with commercial app). Replaced with 3,285 facts from OpenTrivia DB (CC BY-SA 4.0, commercial use allowed) via `mobile/seed-opentdb.sh`. Distributed across slugs: general 641, pop-culture 540, film 423, music 391, history 391, geography 306, science 275, sports 160, literature 109, art 49. Imported as `pending`; visible to dev/Simulator gameplay because the verification gate is prod-only. Re-runnable on any fresh `dev-reset` via `bash mobile/seed-opentdb.sh`.
 
 ✅ Phase 2.6.1 — Schema + admin tooling shell — INSTRUCTIONS_PHASE_2.6.1_SCHEMA_AND_ADMIN.md
 ✅ Phase 2.6.2 — Import + AI source citation — INSTRUCTIONS_PHASE_2.6.2_IMPORT_AND_SOURCING.md
@@ -137,8 +137,9 @@ See PHASE_2.6_ARCHITECTURE.md for the full design. Phase 3 is gated on 2.6.8 com
 ⏸ Phase 2.6.3c — Category source registry — parked pending post-beta revisit. INSTRUCTIONS file exists on disk but not handed to Claude Code.
 ✅ Phase 2.6.3d — The Trivia API as second import source — INSTRUCTIONS_PHASE_2.6.3d_TRIVIA_API_IMPORT.md (auto-detects OpenTrivia DB vs Trivia API shape; tag-level disambiguation; nbsp stripping; `imported_ids` + `source` in response)
 ✅ Phase 2.6.3e — Bulk Trivia API seed + per-category dedupe — INSTRUCTIONS_PHASE_2.6.3e_BULK_TRIVIA_API_SEED.md (`skipped_duplicate` counter on importer; `mobile/seed-trivia-api.sh` reusing `dev-reset.sh` admin; 3,976 facts imported across 10 slugs in 63s)
-⬜ Phase 2.6.4 — Render + Compose Edge Functions — INSTRUCTIONS_PHASE_2.6.4_RENDER_AND_COMPOSE.md
-⬜ Phase 2.6.5 — Mobile integration + cutover — INSTRUCTIONS_PHASE_2.6.5_MOBILE_CUTOVER.md
+✅ OpenTrivia DB re-import — INSTRUCTIONS_OPENTDB_IMPORT.md (wiped Trivia API facts; imported 3,285 OpenTrivia DB facts via `mobile/seed-opentdb.sh`; 26/26 Maestro tests passing; review verdict: comment)
+⬜ Phase 2.6.4 — Replace solo-question with DB fact query — INSTRUCTIONS_REPLACE_SOLO_QUESTION.md (not yet written)
+⬜ Phase 2.6.5 — Replace lobby question generation with DB fact query — INSTRUCTIONS_REPLACE_LOBBY_QUESTIONS.md (not yet written)
 ⬜ Phase 2.6.6 — On-device caching (MMKV) — INSTRUCTIONS_PHASE_2.6.6_DEVICE_CACHING.md
 ⬜ Phase 2.6.7 — Code-level fixes — INSTRUCTIONS_PHASE_2.6.7_CODE_FIXES.md
 ⬜ Phase 2.6.8 — Validation + soak test (informational gate for beta; hard gate for Phase 3 only post-beta)
@@ -406,9 +407,42 @@ See Phase 2.9 Tranche 8 for release-gate items.
 ⬜ INSTRUCTIONS_F13_F14_FRIEND_SYSTEM.md
 ⬜ INSTRUCTIONS_F15_F16_F17_PUSH_NOTIFICATIONS.md
 
-
 ## Post-Beta Restoration
 
 Items relaxed for beta that must be revisited before opening to non-beta users.
 
 - **`facts` and `distractors` RLS read policies** — Migration `20240110000000_relax_facts_read_for_beta.sql` replaced `facts_read_verified` with `facts_read_authenticated` (allowing authenticated users to read facts regardless of `verification_status`) and replaced `distractors_read_active_verified` with `distractors_read_active_authenticated` (dropping the parent-fact `verification_status = 'verified'` requirement, keeping the `is_active = true` filter). Both originals gated reads on the parent fact being verified; relaxing them in lockstep is required because solo-question now reads via the user's JWT (no service role) and OpenTrivia DB facts are stored as `pending`. Decision: revisit before non-beta launch — either restore the gates (and define a verification model for externally-imported facts) or commit to the relaxed policies permanently. Migration comment carries the full restoration SQL for both policies.
+
+---
+
+## Drift Detector — `verify-consistency.sh` State
+
+`verify-consistency.sh` runs as part of `simplify-verify.cmds` on every commit cycle. It performs six grep-based drift checks (A1, A2, B1, C1, D1, D2) and exit-1s if any fail. A failing check is a hard block: no commit lands until the drift is fixed (or the check is fixed if it's wrong).
+
+### Expected-failure threshold
+
+The expected number of failing checks is **the gate that subsequent INSTRUCTIONS files must clear**. Today it is `4`. As cleanup INSTRUCTIONS files land, this number decreases. The script must always reach `0` failures before beta launch.
+
+| Date | Threshold | Reason |
+|------|-----------|--------|
+| 2026-05-04 | 4 (A1, A2, B1, C1) | Initial landing of the drift detector. A1, A2, B1 are the audit-known drift items the script was designed to catch. C1 surfaced real drift Mac Claude's pre-flight missed (`SUPABASE_SERVICE_ROLE_KEY` references in `generate-questions`, `daily-challenge`, `submit-feedback`, `submit-spot-check`). |
+
+### Workflow rule — changing the threshold
+
+Any change to the expected-failure threshold (up or down) requires its own INSTRUCTIONS file. Mid-pipeline acceptance of a different threshold ("oh, today it's 5 instead of 4 — let's keep going") is forbidden. The threshold is a contract; drift in the contract itself defeats the purpose of the detector.
+
+The correct sequence when the threshold should change:
+
+1. A cleanup INSTRUCTIONS file lands that fixes one or more of the failing checks. The author updates this table in the same commit, decrementing the threshold and naming which checks now pass.
+2. The next pipeline run sees the new threshold and gates against it.
+3. If a new check is added to `verify-consistency.sh` (the script grows beyond six checks), an INSTRUCTIONS file specifies the new check and updates the threshold for the new total.
+4. If a check false-positives and gets a whitelist entry, the INSTRUCTIONS file documents the whitelist rationale and the threshold stays the same.
+
+### Whitelist entries
+
+Claude Code has authority to add whitelist entries to individual checks when a false-positive is genuinely a false-positive (literal in a trigger body, comment block, etc.). Each whitelist entry must be accompanied by a one-line tracker note here so future-Claude knows why it exists.
+
+| Date | Check | Whitelisted | Reason |
+|------|-------|-------------|--------|
+| 2026-05-04 | D1 | `20240107000000_auto_seed.sql` | Literal `verification_status = 'verified'` appears inside a trigger function `IF` body, not as an RLS policy predicate. Whitelisted using the same registry pattern the spec uses for grandfathering. |
+
