@@ -121,8 +121,11 @@ Exact commands to run. Do not report success until all pass.
 
 After all verification passes, the implementer ALWAYS runs, in order:
 
+    IMPL_SHA="$(git rev-parse HEAD)"
     bash simplify-and-verify.sh
-    bash run-review.sh "$(git rev-parse HEAD)" <path to this INSTRUCTIONS file>
+    bash run-review.sh "$IMPL_SHA" <path to this INSTRUCTIONS file>
+
+The `IMPL_SHA` capture before `simplify-and-verify.sh` is required: that script may land a `chore: /simplify` commit on top of the implementation, which would shift HEAD. The reviewer must run against the implementation commit, not the chore commit on top.
 
 The implementer does not return control to Mike until run-review.sh exits 0.
 ```
@@ -178,6 +181,18 @@ Every successful `simplify-and-verify.sh` run lands exactly one `chore:` commit 
 | (missing/malformed) |    3 | Manual inspection required.                      |
 
 `simplify-and-verify.sh` always exits 0 unless there is a pre-flight error (uncommitted changes, missing tooling). A revert after verification breakage is correct behavior, not a script failure.
+
+### Capturing the implementation SHA before simplify
+
+`simplify-and-verify.sh` lands a `chore:` commit on top of HEAD on every successful run — either `chore: /simplify — <sha>` (changes accepted), `chore: /simplify reverted — <sha>` (changes failed verification and were reset), or `chore: /simplify ran clean — <sha>` (no changes suggested). After the wrapper finishes, `git rev-parse HEAD` points at the chore commit, not the implementation.
+
+The reviewer (`run-review.sh`) MUST be invoked with the implementation SHA, not the post-simplify HEAD. The implementation SHA is captured BEFORE `simplify-and-verify.sh` runs:
+
+    IMPL_SHA="$(git rev-parse HEAD)"
+    bash simplify-and-verify.sh
+    bash run-review.sh "$IMPL_SHA" <path to this INSTRUCTIONS file>
+
+If `run-review.sh` is invoked with the chore commit's SHA instead, the reviewer correctly returns `request_changes` because the chore commit has no implementation content. That's a workflow error, not a code defect — fix by re-running with the captured `IMPL_SHA`.
 
 ### Mac Claude — Pre-task Review File Gate
 
