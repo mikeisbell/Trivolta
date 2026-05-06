@@ -1,12 +1,60 @@
 # Trivolta — Workflow & Agent Guidelines
 
-## Two-Claude Split
+## Roles
 
-**Mac Claude (claude.ai)** — design, spec, architecture decisions, diff review. Has direct read/write access to the Trivolta repo via the Filesystem MCP tools (allowed roots include `/Users/mizzy/Developer`).
-**Claude Code (iTerm2)** — all code execution, test runs, git commits. Reads INSTRUCTIONS files Mac Claude has already written to disk.
+**Mac Claude (claude.ai)** — design, spec, architecture decisions, diff review. Has direct read/write access to the Trivolta repo via the Filesystem MCP tools (allowed roots include `/Users/mizzy/Developer`). **Mac Claude does not write code, write scripts, or run shell commands.** Mac Claude reads files and writes documents (INSTRUCTIONS files, doc updates, tracker entries). Anything that runs on a machine — a script, a build, a migration, a git operation — is Claude Code's job, not Mac Claude's.
+
+**Claude Code (iTerm2)** — all code execution, test runs, git commits. Reads INSTRUCTIONS files Mac Claude has already written to disk and executes them.
+
+**Mike** — makes architecture and product decisions, performs the final-pass diff review when Claude Code reports back, handles git commits personally for non-Claude-Code edits (such as Mac Claude's doc updates), and decides when to fold tracker findings into the next spec.
 
 Mac Claude writes INSTRUCTIONS\_\*.md files **directly to the Trivolta repo on disk** — never pasted into chat for Mike to copy, never written to `/tmp` or any path outside the repo. Claude Code then reads them and executes.
-Mac Claude reviews every diff against four criteria before Claude Code commits.
+
+---
+
+## Drift Detector — `verify-consistency.sh`
+
+A repo-root script `verify-consistency.sh` runs as part of `simplify-verify.cmds` on every commit cycle. It performs grep-based drift checks (currently A1, A2, B1, C1, D1, D2) and exits non-zero if any fail. A failing check is a hard block: no commit lands until either the drift is fixed or the check itself is corrected.
+
+The script's purpose is to detect cross-file drift that the four-criteria review cannot catch: contract mismatches between mobile and DB, lying UI copy that contradicts backend reality, accidental privilege escalation, RLS-policy regressions. The Tech Debt Audit (2026-05-04) found ~40 items in this class; `verify-consistency.sh` is the automated detector that prevents them from accumulating again.
+
+**Threshold tracking.** `TRIVOLTA_TRACKER.md` has a "Drift Detector" section with a table showing the current expected-failure count and the dates each check was cleared. The script must reach 0 failures before beta.
+
+**Threshold changes require their own INSTRUCTIONS file.** Mid-pipeline acceptance of an unexpected count ("oh, today it's 5 instead of 4 — let's keep going") is forbidden. The threshold is a contract; drift in the contract itself defeats the purpose of the detector. The correct sequence: a cleanup INSTRUCTIONS file lands that fixes one or more checks, the author updates the threshold table in the same commit decrementing the count, the next pipeline run gates against the new threshold.
+
+**Whitelist entries** for individual checks (when a false-positive is genuinely a false-positive — a literal in a trigger body, a comment block, etc.) live in the script and are documented in the tracker's whitelist table. Each whitelist entry must have a one-line tracker note explaining why.
+
+**New checks.** When a new drift class is found (typically by audit), a new check is added to `verify-consistency.sh` via its own INSTRUCTIONS file. The threshold rises with the addition and falls back to the previous level once the underlying drift is fixed.
+
+---
+
+## Periodic Audits
+
+The four-criteria diff review and the automated reviewer subprocess are both **local** — they evaluate one diff against one spec. Neither looks at the cumulative shape of the codebase. Cross-file drift accumulates invisibly across many small diffs.
+
+A full-codebase audit is the backstop. It runs as a dedicated session (no code changes), reads the codebase end-to-end against the docs, and produces a single tech debt inventory with severity ratings. Mike re-rates findings and decides which become INSTRUCTIONS files.
+
+**Cadence:** every 10 completed INSTRUCTIONS files, or at major phase boundaries, or whenever Mike senses drift.
+
+**Output:** `TECH_DEBT_AUDIT_<date>.md` at repo root. Findings get ID'd, categorized, and severity-rated (beta-blocker / pre-beta-cleanup / post-beta).
+
+**Process change loop:** every audit finding that could have been caught at write-time becomes either (a) a new `verify-consistency.sh` check or (b) an addition to the INSTRUCTIONS file Pre-flight context requirements. The audit itself is the input that makes detection automation smarter; over time, audits should find fewer items because the detection layer caught them at write-time.
+
+---
+
+## Scope Expansion (Claude Code)
+
+When Claude Code is implementing an INSTRUCTIONS file and discovers code adjacent to the task that is broken, lying, or contradicts the spec's assumptions, it does not silently work around the issue.
+
+**Two cases:**
+
+1. **Mechanical extension of the same change.** The spec specifies fixing a testID reference in test_08, but tests_09 and _10 reference the same testID and would break. Claude Code extends the fix to the affected tests, notes the extension in the final report, and proceeds. Mac Claude's spec was incomplete (a Pre-flight grep miss), not the implementation.
+
+2. **Genuine adjacent broken code.** The spec specifies a backend change, but UI copy describing that backend lies post-change; or the spec specifies a route, but the route's _layout file is misconfigured. Claude Code stops, surfaces a one-paragraph proposal for an expanded scope, and waits for Mike's call. Working around it silently — by adding a band-aid in the spec's scope to absorb the adjacent problem — is forbidden.
+
+The distinction: case 1 is the same change applied to more files than the spec listed (Pre-flight miss, no design decision). Case 2 is a different problem the implementer noticed (real design decision, requires Mike).
+
+Final report from Claude Code must explicitly call out any scope extensions taken under case 1, with the reason and the additional files modified. The reviewer subprocess will flag scope extensions; if Claude Code's report omits them, the review will surface them anyway.
 
 ---
 
@@ -147,7 +195,7 @@ The `IMPL_SHA` capture before `simplify-and-verify.sh` is required: that script 
 The implementer does not return control to Mike until run-review.sh exits 0.
 ```
 
-The two-script tail is mandatory in every future INSTRUCTIONS file's Verification section.
+The verification commands listed above are mandatory at the end of every Verification section. Capture `IMPL_SHA` first, then run `simplify-and-verify.sh`, then run `run-review.sh` against `IMPL_SHA`.
 
 **Pre-flight context and Sites this affects are mandatory.** They exist because the four-criteria diff review is local — it asks whether THIS diff matches THIS spec — and nothing else in the workflow looks at cross-file drift. The Tech Debt Audit (2026-05-04) found ~40 items, the majority of which were drift between layers (mobile↔server, screen↔screen, doc↔code) that no per-diff review would have caught. Pre-flight forces the cross-file homework at spec time; Sites this affects forces a final cross-file scan before the diff lands. If either section is missing or pencilled in as "None" without grep evidence, the INSTRUCTIONS file is incomplete and Claude Code refuses to start.
 
@@ -162,14 +210,14 @@ The two-script tail is mandatory in every future INSTRUCTIONS file's Verificatio
 
 ## Diff Review — Four Criteria
 
-Mac Claude checks every `git diff HEAD > ~/trivolta_diff.txt` against:
+When Claude Code finishes a task and reports back to Mike, Mike pastes the final report (and optionally the diff) into the Mac Claude conversation. Mac Claude then checks the work against four criteria. The automated reviewer subprocess (described in the next section) runs against the same four criteria as a structural backbone, but the human pass catches design and intent issues the subprocess can miss.
 
 1. **Objective met** — does the diff accomplish what the INSTRUCTIONS file specified?
 2. **Constraints not violated** — did Claude Code stay within the boundaries?
 3. **No unintended files modified** — only expected files changed?
 4. **CLAUDE.md additions justified** — new entries pass the "not in code, wrong decision if absent" test?
 
-Do not commit until all four pass.
+If all four pass, Mike commits (for Mac Claude doc edits) or accepts Claude Code's commit. If any fail, Mac Claude says so plainly and proposes a fix; the fix may be a follow-up INSTRUCTIONS file, an in-place edit, or a request that Claude Code amend the commit.
 
 ---
 
@@ -216,6 +264,8 @@ If `run-review.sh` is invoked with the chore commit's SHA instead, the reviewer 
 Before writing any new INSTRUCTIONS file, Mac Claude verifies that the most recent commit on the current branch already has a corresponding `reviews/<sha>.md` file with verdict ≠ `request_changes`.
 
 Mechanic: list `reviews/`, find the file matching `git log -1 --format=%H` on the current branch, read its YAML front matter. If the file is missing or the verdict is `request_changes`, Mac Claude refuses the new task and tells Mike the previous review must be cleared first.
+
+A verdict of `comment` (zero blockers but findings present) passes the gate, but Mac Claude must read the findings before drafting the new spec. If a finding flags a class of mistake the new spec might repeat (a missed grep, a contract gap, a misnamed test), Mac Claude either folds the fix into the new spec or surfaces it to Mike before continuing.
 
 This is the trust mitigation for an honor-system pipeline.
 
